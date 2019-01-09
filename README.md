@@ -1,2 +1,2 @@
-# smartCalculatorClient
-smartCalculator Client Project
+# smartCalculator
+SmartCalculator Project
