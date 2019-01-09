@@ -46,13 +46,18 @@ int main(int argc,char *argv[])
 		return -1;
 	}
 	memonry_pool_t *pool = memonry_pool_create(10*1024*1024);
+	if(pool == NULL)
+	{
+		printf("create memory pool failed\n");
+		return -1;
+	}
 	VideoV4l2 video;
 	video.videofd= open(argv[1],O_RDWR);
 	if(video.videofd < 0)
 		SYS_ERR("open failed");
 
 	init_v4l2_device(&video,4,pool);
-	
+	printf("init video Ok!\n");	
 	int sockfd = socket(PF_INET,SOCK_STREAM,0);
 	if(sockfd < 0)
 		SYS_ERR("socket failed");
@@ -64,6 +69,12 @@ int main(int argc,char *argv[])
 
 	uint8_t *rgb24 = (uint8_t *)memonry_pool_alloc(pool,video.width*video.height*3);
 	uint8_t *resizedata = (uint8_t *)memonry_pool_alloc(pool,224*224*3);
+	if(rgb24 == NULL || resizedata == NULL)
+	{
+		printf("memonry pool allocate failed\n");
+		exit(-1);
+	}
+	printf("hold the next frame....\n");
 	holder_next_frame(&video,rgb24);
 
 	//连接远程服务器
@@ -72,7 +83,6 @@ int main(int argc,char *argv[])
 		SYS_ERR("connect failed");
 	printf("connect to server....OK\n");
 
-	//每隔2秒发送一次图片
 	calculatorProtocol *pack = (calculatorProtocol *)memonry_pool_alloc(pool,sizeof(calculatorProtocol));
 
 
