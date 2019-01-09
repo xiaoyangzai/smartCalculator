@@ -1,0 +1,2 @@
+# smartCalculatorClient
+smartCalculator Client Project
