@@ -45,7 +45,7 @@ int main(int argc,char *argv[])
 		printf("usage: ./client [video device path] [IP] [Port]\n");
 		return -1;
 	}
-	memonry_pool_t *pool = memonry_pool_create(10*1024*1024);
+	memory_pool_t *pool = memory_pool_create(10*1024*1024);
 	if(pool == NULL)
 	{
 		printf("create memory pool failed\n");
@@ -67,11 +67,11 @@ int main(int argc,char *argv[])
 	serverInfo.sin_port = htons(atoi(argv[3]));
 	serverInfo.sin_addr.s_addr = inet_addr(argv[2]);
 
-	uint8_t *rgb24 = (uint8_t *)memonry_pool_alloc(pool,video.width*video.height*3);
-	uint8_t *resizedata = (uint8_t *)memonry_pool_alloc(pool,224*224*3);
+	uint8_t *rgb24 = (uint8_t *)memory_pool_alloc(pool,video.width*video.height*3);
+	uint8_t *resizedata = (uint8_t *)memory_pool_alloc(pool,224*224*3);
 	if(rgb24 == NULL || resizedata == NULL)
 	{
-		printf("memonry pool allocate failed\n");
+		printf("memory pool allocate failed\n");
 		exit(-1);
 	}
 	printf("hold the next frame....\n");
@@ -83,7 +83,7 @@ int main(int argc,char *argv[])
 		SYS_ERR("connect failed");
 	printf("connect to server....OK\n");
 
-	calculatorProtocol *pack = (calculatorProtocol *)memonry_pool_alloc(pool,sizeof(calculatorProtocol));
+	calculatorProtocol *pack = (calculatorProtocol *)memory_pool_alloc(pool,sizeof(calculatorProtocol));
 
 
 	while(1)
@@ -122,7 +122,7 @@ int main(int argc,char *argv[])
 		printf("head: %x\n",pack->head);
 	}
 	release_memory(&video);
-	memonry_pool_destroy(pool);
+	memory_pool_destroy(pool);
 	close(sockfd);
 	close(video.videofd);
 	return 0;
