@@ -1,9 +1,9 @@
 all=calculatorClient
 SOURCE=$(wildcard *.c)
 OBJS=$(patsubst %.c,%.o,$(SOURCE))
-LIBS=-L./libjpeg/lib -ljpeg -lpthread
-CFLAGS=-I./libjpeg/include -DDEBUG
-CC=gcc
+LIBS=-L./libjpeg_arm/lib -ljpeg -lpthread
+CFLAGS=-I./libjpeg_arm/include 
+CC=arm-linux-gcc
 
 .PHONY:clean
 

@@ -48,10 +48,10 @@ def main():
     decode_data = struct.unpack_from("!BBi",data)
     print "recv: ",decode_data
 
-    img = conn.recv(decode_data[2])
+    img = conn.recv(decode_data[2], socket.MSG_WAITALL)
     #recv默认将字节流转换为字符串类型,因此需要struct.unpack进行转换
     newimg = struct.unpack('B'*decode_data[2],img)
-    newimg = np.array(newimg).reshape(64,64,3)
+    newimg = np.array(newimg).reshape(224,224,3)
 
     #使用模型进行预测
     cls,prbs = sess.run([classes,probs],feed_dict={inputs:[newimg]})
