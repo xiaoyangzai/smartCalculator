@@ -1,7 +1,7 @@
 all=calculatorClient
 SOURCE=$(wildcard *.c)
 OBJS=$(patsubst %.c,%.o,$(SOURCE))
-LIBS=-L./libjpeg/lib -ljpeg
+LIBS=-L./libjpeg/lib -ljpeg -lpthread
 CFLAGS=-I./libjpeg/include -DDEBUG
 CC=gcc
 

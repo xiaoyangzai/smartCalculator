@@ -191,7 +191,7 @@ int release_one_frame(VideoV4l2 *video)
 	return 0;
 }
 
-int release_memory(VideoV4l2*video)
+int release_v4l2_device(VideoV4l2*video)
 {
 	int i;
 	for (i=0; i< video->frame_buff_count; i++) 

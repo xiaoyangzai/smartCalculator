@@ -25,5 +25,5 @@ int start_capture_frame(int fd);
 int allocate_memory(VideoV4l2 *video);
 int holder_next_frame(VideoV4l2 *video,uint8_t *data);
 int release_one_frame(VideoV4l2 *video);
-int release_memory(VideoV4l2*video);
+int release_v4l2_device(VideoV4l2*video);
 #endif
