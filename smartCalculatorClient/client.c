@@ -16,13 +16,13 @@ int init_global_resource(global_resource * resource,const char *server_ip,short 
 	resource->resize_width = resize_width;
 	resource->resize_height = resize_height;
 	resource->resize_rgb24 = (uint8_t*)memory_pool_alloc(resource->pool,resize_width*resize_height*3);
-	resource->sem_key = sem_key;
-	resource->sem_id = create_semaphore(resource->sem_key,sem_numbs);
+	//resource->sem_key = sem_key;
+	//resource->sem_id = create_semaphore(resource->sem_key,sem_numbs);
 
 	//信号量设置初值
-	set_sem_val(resource->sem_id,0,1);
-	set_sem_val(resource->sem_id,1,1);
-	set_sem_val(resource->sem_id,2,1);
+	//set_sem_val(resource->sem_id,0,1);
+	//set_sem_val(resource->sem_id,1,1);
+	//set_sem_val(resource->sem_id,2,1);
 
 	resource->camera.videofd = open(camera_path,O_RDWR);
 	if(resource->camera.videofd < 0)
@@ -45,7 +45,7 @@ int init_global_resource(global_resource * resource,const char *server_ip,short 
 }
 int release_global_resource(global_resource * resource)
 {
-	del_sem(resource->sem_id);
+	//del_sem(resource->sem_id);
 	release_v4l2_device(&(resource->camera));
 	close(resource->camera.videofd);
 	close(resource->balance_fd);
@@ -77,6 +77,7 @@ void *balance_module_handle(void *arg)
 	int tmp_weight = 0;
 	int n = 0;
 	int weight_delay = 10; 
+	float base = 0.00248;
 	while(1)
 	{
 		weight_delay = 10;
@@ -92,17 +93,16 @@ void *balance_module_handle(void *arg)
 				printf("server offline!\n");
 				break;
 			}
-			sem_P(gres->sem_id,0);
-			gres->weight = tmp_weight/403800.0;
-			sem_V(gres->sem_id,0);
-			printf("%.2f kg\n",tmp_weight/403800.0);
+			//sem_P(gres->sem_id,0);
+			gres->weight = tmp_weight*0.00248;
+			//sem_V(gres->sem_id,0);
+			printf("%fg\n",tmp_weight*0.00248);
 			fflush(stdout);
 			usleep(500*1000);
 		}
-		//
-		printf("Final weight:  %.2f kg\n",tmp_weight/403800.0);
+		printf("Final weight:  %fg\n",gres->weight*0.00248);
 
-		if(gres->accept_flag)
+		if(!gres->accept_flag)
 			continue;
 
 		printf("Capture the image....\n");
@@ -138,10 +138,10 @@ void *balance_module_handle(void *arg)
 			printf("class: %d\n",pack->type);
 			printf("head: %x\n",pack->head);
 
-			sem_P(gres->sem_id,1);
+			//sem_P(gres->sem_id,1);
 			gres->class_id = pack->type;
 			gres->price =ntohl(pack->length)/100.0; 
-			sem_V(gres->sem_id,1);
+			//sem_V(gres->sem_id,1);
 			printf("ClassID: %d\tPrice: %.3fRMB\t Weight: %.3fkg\n",gres->class_id,gres->price,gres->weight);
 		}
 		fflush(stdout);
