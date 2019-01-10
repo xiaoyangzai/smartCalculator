@@ -58,7 +58,7 @@ def main():
     print cls
     print prbs
 
-    #返回预测结果
+    #返回预测结果,length中保存价格
     ret = struct.pack("!BBi",0xEF,cls[0],0)
     conn.sendall(ret)
     conn.close()

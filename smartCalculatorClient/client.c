@@ -95,8 +95,9 @@ void *balance_module_handle(void *arg)
 			sem_P(gres->sem_id,0);
 			gres->weight = tmp_weight/403800.0;
 			sem_V(gres->sem_id,0);
-			printf("%.2f kg\r",tmp_weight/403800.0);
+			printf("%.2f kg\n",tmp_weight/403800.0);
 			fflush(stdout);
+			usleep(500*1000);
 		}
 		//
 		printf("Final weight:  %.2f kg\n",tmp_weight/403800.0);
@@ -139,7 +140,7 @@ void *balance_module_handle(void *arg)
 
 			sem_P(gres->sem_id,1);
 			gres->class_id = pack->type;
-			gres->price =pack->length/100.0; 
+			gres->price =ntohl(pack->length)/100.0; 
 			sem_V(gres->sem_id,1);
 			printf("ClassID: %d\tPrice: %.3fRMB\t Weight: %.3fkg\n",gres->class_id,gres->price,gres->weight);
 		}
