@@ -89,7 +89,7 @@ void *balance_module_handle(void *arg)
 	float base = 0.00248;
 	while(1)
 	{
-		weight_delay = 5;
+		weight_delay = 10;
 		//称重
 
 		//printf("start to balance something....\n");
@@ -115,14 +115,18 @@ void *balance_module_handle(void *arg)
 			gres->weight = tmp_weight*base/1000;
 			pthread_rwlock_unlock(&gres->rwmtx);
 			//printf("%fg\n",tmp_weight*base);
+			usleep(20*1000);
 			fflush(stdout);
 		}
-		//printf("Final weight:  %fg\n",gres->weight);
-
-		if(!gres->accept_flag)
+		if(gres->weight <= 0.0010)
+			continue;
+		printf("Final weight:  %fkg\n",gres->weight);
+		if(gres->accept_flag )
 			continue;
 
+#ifdef DEBUG
 		printf("Capture the image....\n");
+#endif
 		//发送图像到服务器
 		pack->head = 0xEF;
 		pack->type = 0x01;
@@ -136,13 +140,17 @@ void *balance_module_handle(void *arg)
 		scale_rgb24(gres->rgb24,gres->resize_rgb24,gres->camera.width,gres->camera.height,gres->resize_width,gres->resize_height);
 		pthread_rwlock_unlock(&gres->rwmtx);
 		
+#ifdef DEBUG
 		printf("send the image....\n");
+#endif
 
 		n = write(sockfd,gres->resize_rgb24,gres->resize_width*gres->resize_height*3);
 		if(n < 0)
 			ERR("send image data failed");
 
+#ifdef DEBUG
 		printf("send image[%d bytes] OK! Waiting for result....\n",n);
+#endif
 		fflush(stdout);
 		//接收分析结果
 		n = read(sockfd,pack,sizeof(calculatorProtocol));
@@ -155,9 +163,11 @@ void *balance_module_handle(void *arg)
 		}
 		else
 		{
+#ifdef DEBUG
 			printf("recv %d bytes\n",n);
 			printf("class: %d\n",pack->type);
 			printf("head: %x\n",pack->head);
+#endif
 
 			pthread_rwlock_wrlock(&gres->rwmtx);
 			gres->class_id = pack->type;
