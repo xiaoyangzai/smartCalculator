@@ -108,7 +108,9 @@ void *balance_module_handle(void *arg)
 		weight_delay = 10;
 		//称重
 
-		//printf("start to balance something....\n");
+#ifdef BALANCE_MODULE_DEBUG
+		printf("start to balance something....\n");
+#endif
 		while(weight_delay--)
 		{
 			n = read(gres->balance_fd,&tmp_weight,sizeof(tmp_weight));
@@ -130,7 +132,9 @@ void *balance_module_handle(void *arg)
 			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
 			gres->weight = tmp_weight*base/1000;
 			pthread_rwlock_unlock(&gres->rw_weight_mtx);
-			//printf("%fg\n",tmp_weight*base);
+#ifdef BALANCE_MODULE_DEBUG
+			printf("%fg\n",tmp_weight*base);
+#endif
 			usleep(20*1000);
 			fflush(stdout);
 		}

@@ -16,7 +16,9 @@
 //doResponseWebSocekt处理websocket连接
 int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 {
+#ifdef __PROTOCL_DEBUG__
 	printf("=======  websocket request  =========\n");
+#endif
 	memory_pool_t *pool = gres->pool;
 	char destString[MAXLINE] = "Sec-WebSocket-Key: ";
 	char WebSocketHeader[MAXLINE] = {0};
@@ -27,7 +29,9 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 	char *end = strstr(p,"\r\n");
 	*end = '\0';
 	shakeHands(p,WebSocketHeader);
+#ifdef __PROTOCL_DEBUG__
 	printf("=======WebSocketHeader========\n%s\n",WebSocketHeader);
+#endif
 	
 	//发送响应消息头
 	if(write(fd,WebSocketHeader,strlen(WebSocketHeader)) < 0)
@@ -44,16 +48,16 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 		switch(gres->class_id)
 		{
 			case 0:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","黄瓜",gres->weight,gres->price);
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\n","黄瓜",gres->weight,gres->price);
 				break;
 			case 1:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","青椒",gres->weight,gres->price);
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\n","青椒",gres->weight,gres->price);
 				break;
 			case 255:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","空",gres->weight,gres->price);
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\n","空",gres->weight,gres->price);
 				break;
 			default:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","未知",gres->weight,gres->price);
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\n","未知",gres->weight,gres->price);
 				break;
 		}
 		fflush(stdout);
@@ -170,7 +174,9 @@ void display_webserver(int fd,global_resource *gres)
 		close(fd);		
 		return;
 	}
+#ifdef __PROTOCL_DEBUG__
 	printf("====== client request header ======= \n");
+#endif
 	write(1,buf,total);
 	char *p = strstr(buf,"\n");
 	*p = 0;
@@ -182,13 +188,18 @@ void display_webserver(int fd,global_resource *gres)
 	}
 	if(strstr(p + 1,"websocket"))
 	{
+#ifdef __PROTOCL_DEBUG__
+		printf("====== client request header ======= \n");
 		printf("===== client websocket request =====\n%s\n",p + 1);
+#endif
 		//websoket请求
 		doResponseWebSocket(p + 1,fd,gres);
 		return;
 	}
 
+#ifdef __PROTOCL_DEBUG__
 	printf("common connection request!!\n");
+#endif
 	//解析GET请求中的URI
 	//根据解析确定请求的是否是静态内容还是动态内容
 	is_static = parse_uri(uri,filename,cgiargs);
@@ -207,7 +218,9 @@ void display_webserver(int fd,global_resource *gres)
 			clienterror(fd,filename,"403","Forbidden","tiny couldn't read the file");
 			return;
 		}
+#ifdef __PROTOCL_DEBUG__
 		printf("response the request!!\n");
+#endif
 		serve_static(fd,filename,sbuf.st_size);
 	}
 	else
