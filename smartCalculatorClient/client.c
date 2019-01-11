@@ -2,11 +2,14 @@
 #include <stdio.h>
 #include <assert.h>
 #include "common.h"
+#include "memory_pool.h"
 #include "jpeg_util.h"
+#include "video_util.h"
+#include "webserver.h"
 #include "client.h"
 
 
-int init_global_resource(global_resource * resource,const char *server_ip,short server_port,size_t pool_size,uint32_t resize_width,uint32_t resize_height,const char *camera_path,int frame_buff_count,const char *balance_path)
+int init_global_resource(global_resource * resource,const char *server_ip,short server_port,size_t pool_size,uint32_t resize_width,uint32_t resize_height,const char *camera_path,int frame_buff_count,const char *balance_path,short web_port)
 {
 	assert(resource != NULL);
 	resource->pool = memory_pool_create(pool_size);
@@ -24,6 +27,7 @@ int init_global_resource(global_resource * resource,const char *server_ip,short 
 	if(resource->balance_fd <  0)
 		ERR("open balance module failed\n");
 
+	resource->web_port = web_port;
 	init_v4l2_device(&(resource->camera),frame_buff_count,resource->pool);
 
 	resource->rgb24 = (uint8_t*)memory_pool_alloc(resource->pool,resource->camera.width*resource->camera.height*3);
@@ -33,7 +37,9 @@ int init_global_resource(global_resource * resource,const char *server_ip,short 
 	resource->server_port = server_port;
 	resource->accept_flag = 0;
 
-	if(pthread_rwlock_init(&(resource->rwmtx),NULL)!=0)
+	if(pthread_rwlock_init(&(resource->rw_image_mtx),NULL)!=0)
+		ERR("pthread rwlock initialized failed");
+	if(pthread_rwlock_init(&(resource->rw_weight_mtx),NULL)!=0)
 		ERR("pthread rwlock initialized failed");
 	printf("Main Resource is initialized!\n");
 	return 0;
@@ -44,7 +50,8 @@ int release_global_resource(global_resource * resource)
 	close(resource->camera.videofd);
 	close(resource->balance_fd);
 	memory_pool_destroy(resource->pool);
-	pthread_rwlock_destroy(&(resource->rwmtx));
+	pthread_rwlock_destroy(&(resource->rw_image_mtx));
+	pthread_rwlock_destroy(&(resource->rw_weight_mtx));
 	printf("Main Resource has been cleaned up!\n");
 	return 0;
 }
@@ -52,14 +59,21 @@ int release_global_resource(global_resource * resource)
 void *display_module_handle(void *arg)
 {
 	global_resource *gres = (global_resource *)arg;	
+	//建立web服务器
+	int listenfd = open_listen("0.0.0.0",gres->web_port);	
+	int connfd;
+	struct sockaddr_in clientaddr ;
+	socklen_t addrlen;
+	addrlen = sizeof(clientaddr);
+	addrlen = sizeof(clientaddr);
+	printf("Waiting for connection from client.....\n");
+	connfd = accept(listenfd,(struct sockaddr *)&clientaddr,&addrlen);
+	printf("New client has been coming!!\n");
 
-	while(1)
-	{
-		pthread_rwlock_rdlock(&gres->rwmtx);
-		printf("ClassID: %d\tWeight: %.3fkg\tPrice: %f\n",gres->class_id,gres->weight,gres->price);
-		pthread_rwlock_unlock(&gres->rwmtx);
-		usleep(100*1000);
-	}
+	display_webserver(connfd,gres);
+	close(connfd);
+
+
 	pthread_exit(NULL);
 }
 
@@ -111,9 +125,9 @@ void *balance_module_handle(void *arg)
 				printf("server offline!\n");
 				break;
 			}
-			pthread_rwlock_wrlock(&gres->rwmtx);
+			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
 			gres->weight = tmp_weight*base/1000;
-			pthread_rwlock_unlock(&gres->rwmtx);
+			pthread_rwlock_unlock(&gres->rw_weight_mtx);
 			//printf("%fg\n",tmp_weight*base);
 			usleep(20*1000);
 			fflush(stdout);
@@ -124,10 +138,10 @@ void *balance_module_handle(void *arg)
 		if(gres->accept_flag )
 			continue;
 
-#ifdef DEBUG
+#ifdef BALANCE_MODULE_DEBUG
 		printf("Capture the image....\n");
 #endif
-		//发送图像到服务器
+		//发送到服务器
 		pack->head = 0xEF;
 		pack->type = 0x01;
 		pack->length = htonl(gres->resize_width*gres->resize_height*3);
@@ -135,20 +149,18 @@ void *balance_module_handle(void *arg)
 			ERR("send package failed");
 
 
-		pthread_rwlock_wrlock(&gres->rwmtx);
-		holder_next_frame(&(gres->camera),gres->rgb24);
+		//缩放图像
+		pthread_rwlock_rdlock(&gres->rw_image_mtx);
 		scale_rgb24(gres->rgb24,gres->resize_rgb24,gres->camera.width,gres->camera.height,gres->resize_width,gres->resize_height);
-		pthread_rwlock_unlock(&gres->rwmtx);
-		
-#ifdef DEBUG
+		pthread_rwlock_unlock(&gres->rw_image_mtx);
+#ifdef BALANCE_MODULE_DEBUG
 		printf("send the image....\n");
 #endif
-
 		n = write(sockfd,gres->resize_rgb24,gres->resize_width*gres->resize_height*3);
 		if(n < 0)
 			ERR("send image data failed");
 
-#ifdef DEBUG
+#ifdef BALANCE_MODULE_DEBUG
 		printf("send image[%d bytes] OK! Waiting for result....\n",n);
 #endif
 		fflush(stdout);
@@ -158,21 +170,21 @@ void *balance_module_handle(void *arg)
 			ERR("read failed");
 		if(n == 0)
 		{
-			printf("server offlin\n");
+			printf("server offline\n");
 			break;
 		}
 		else
 		{
-#ifdef DEBUG
+#ifdef BALANCE_MODULE_DEBUG
 			printf("recv %d bytes\n",n);
 			printf("class: %d\n",pack->type);
 			printf("head: %x\n",pack->head);
 #endif
 
-			pthread_rwlock_wrlock(&gres->rwmtx);
+			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
 			gres->class_id = pack->type;
 			gres->price =ntohl(pack->length)/100.0; 
-			pthread_rwlock_unlock(&gres->rwmtx);
+			pthread_rwlock_unlock(&gres->rw_weight_mtx);
 			//printf("ClassID: %d\tPrice: %.3fRMB\t Weight: %.3fkg\n",gres->class_id,gres->price,gres->weight);
 		}
 		fflush(stdout);

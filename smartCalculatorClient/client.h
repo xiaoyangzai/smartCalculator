@@ -18,7 +18,10 @@ typedef struct _global_resource{
 	int balance_fd;
 	int accept_flag;
 	//read-write lock
-	pthread_rwlock_t rwmtx;
+	pthread_rwlock_t rw_image_mtx;
+	pthread_rwlock_t rw_weight_mtx;
+	//display module listen port
+	short web_port;
 }global_resource;
 
 #pragma pack(1)
@@ -30,7 +33,7 @@ typedef struct _protocol{
 #pragma pack()
 
 //Main resource initilization.
-int init_global_resource(global_resource * resource,const char *server_ip,short server_port,size_t pool_size,uint32_t resize_width,uint32_t resize_height,const char *camera_path,int frame_buff_count,const char *balance_path);
+int init_global_resource(global_resource * resource,const char *server_ip,short server_port,size_t pool_size,uint32_t resize_width,uint32_t resize_height,const char *camera_path,int frame_buff_count,const char *balance_path,short port);
 int release_global_resource(global_resource * resource);
 
 //balance module pthread function.

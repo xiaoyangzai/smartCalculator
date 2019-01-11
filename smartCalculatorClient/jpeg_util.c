@@ -417,7 +417,7 @@ int encode_jpeg(uint8_t*rgb24,int width,int height,uint8_t **outbuffer,uint64_t*
 
 
 	jpeg_set_defaults(&cinfo);
-	jpeg_set_quality(&cinfo,100,TRUE);
+	jpeg_set_quality(&cinfo,30,TRUE);
 	jpeg_start_compress(&cinfo, TRUE);
 	row_stride = width * 3;
 
