@@ -41,7 +41,22 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 
 		pthread_rwlock_rdlock(&gres->rw_weight_mtx);
 #ifdef DISPLAY_MODULE_DEBUG
-		printf("ClassID: %d\tWeight: %.3fkg\tPrice: %f\n",gres->class_id,gres->weight,gres->price);
+		switch(gres->class_id)
+		{
+			case 0:
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","黄瓜",gres->weight,gres->price);
+				break;
+			case 1:
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","青椒",gres->weight,gres->price);
+				break;
+			case 255:
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","空",gres->weight,gres->price);
+				break;
+			default:
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","未知",gres->weight,gres->price);
+				break;
+		}
+		fflush(stdout);
 #endif
 		pthread_rwlock_unlock(&gres->rw_weight_mtx);
 
@@ -58,7 +73,7 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 		}
 
 		//发送websoket协议头	
-#ifdef DISPLAY_MODULE_DEBUG
+#ifdef DEBUG
 		printf("Image size: %d\n",jpeg_len);
 #endif
 		sendWebSocketHeader(fd,BINARY_CODE,jpeg_len);
@@ -70,7 +85,7 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 		if(n != jpeg_len)
 			ERR("write failed");
 		usleep(200*1000);
-#ifdef DISPLAY_MODULE_DEBUG
+#ifdef DEBUG
 		printf("image send successfully!!\n");
 #endif
 	}

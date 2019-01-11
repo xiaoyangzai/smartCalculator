@@ -134,7 +134,9 @@ void *balance_module_handle(void *arg)
 		}
 		if(gres->weight <= 0.0010)
 			continue;
+#ifdef BALANCE_MODULE_DEBUG
 		printf("Final weight:  %fkg\n",gres->weight);
+#endif
 		if(gres->accept_flag )
 			continue;
 

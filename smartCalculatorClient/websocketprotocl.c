@@ -71,7 +71,7 @@ int getPocketData(uint8_t *data,uint8_t *outBuff)
 
 int sendWebSocketHeader(int clientfd,uint8_t type,uint64_t len)
 {
-#ifdef DISPLAY_MODULE_DEBUG
+#ifdef DEBUG
 	printf("send websocket header......\n");
 #endif
 	uint8_t pockHeader[MAXLINE] = {0};	
@@ -93,7 +93,7 @@ int sendWebSocketHeader(int clientfd,uint8_t type,uint64_t len)
 	}
 	if(write(clientfd,pockHeader,index) < 0)
 		ERR("send pocket failed");
-#ifdef DISPLAY_MODULE_DEBUG
+#ifdef DEBUG
 	printf("send websocket header finish!!!\n");
 #endif
 	return 0;
