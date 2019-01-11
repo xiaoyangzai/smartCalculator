@@ -6,7 +6,7 @@
 #include "client.h"
 
 
-int init_global_resource(global_resource * resource,const char *server_ip,short server_port,size_t pool_size,uint8_t sem_numbs,uint32_t resize_width,uint32_t resize_height,key_t sem_key,const char *camera_path,int frame_buff_count,const char *balance_path)
+int init_global_resource(global_resource * resource,const char *server_ip,short server_port,size_t pool_size,uint32_t resize_width,uint32_t resize_height,const char *camera_path,int frame_buff_count,const char *balance_path)
 {
 	assert(resource != NULL);
 	resource->pool = memory_pool_create(pool_size);
@@ -16,14 +16,6 @@ int init_global_resource(global_resource * resource,const char *server_ip,short 
 	resource->resize_width = resize_width;
 	resource->resize_height = resize_height;
 	resource->resize_rgb24 = (uint8_t*)memory_pool_alloc(resource->pool,resize_width*resize_height*3);
-	//resource->sem_key = sem_key;
-	//resource->sem_id = create_semaphore(resource->sem_key,sem_numbs);
-
-	//信号量设置初值
-	//set_sem_val(resource->sem_id,0,1);
-	//set_sem_val(resource->sem_id,1,1);
-	//set_sem_val(resource->sem_id,2,1);
-
 	resource->camera.videofd = open(camera_path,O_RDWR);
 	if(resource->camera.videofd < 0)
 		ERR("open camera module failed\n");
@@ -40,18 +32,35 @@ int init_global_resource(global_resource * resource,const char *server_ip,short 
 	resource->server_ip = server_ip;
 	resource->server_port = server_port;
 	resource->accept_flag = 0;
+
+	if(pthread_rwlock_init(&(resource->rwmtx),NULL)!=0)
+		ERR("pthread rwlock initialized failed");
 	printf("Main Resource is initialized!\n");
 	return 0;
 }
 int release_global_resource(global_resource * resource)
 {
-	//del_sem(resource->sem_id);
 	release_v4l2_device(&(resource->camera));
 	close(resource->camera.videofd);
 	close(resource->balance_fd);
 	memory_pool_destroy(resource->pool);
+	pthread_rwlock_destroy(&(resource->rwmtx));
 	printf("Main Resource has been cleaned up!\n");
 	return 0;
+}
+
+void *display_module_handle(void *arg)
+{
+	global_resource *gres = (global_resource *)arg;	
+
+	while(1)
+	{
+		pthread_rwlock_rdlock(&gres->rwmtx);
+		printf("ClassID: %d\tWeight: %fg\tPrice: %f\n",gres->class_id,gres->weight,gres->price);
+		pthread_rwlock_unlock(&gres->rwmtx);
+		usleep(200*1000);
+	}
+	pthread_exit(NULL);
 }
 
 void *balance_module_handle(void *arg)
@@ -77,30 +86,38 @@ void *balance_module_handle(void *arg)
 	int tmp_weight = 0;
 	int n = 0;
 	int weight_delay = 10; 
-	float base = 0.00248;
+	float base = 0.00198;
 	while(1)
 	{
-		weight_delay = 10;
+		weight_delay = 5;
 		//称重
-		printf("start to balance something....\n");
+
+		//printf("start to balance something....\n");
 		while(weight_delay--)
 		{
 			n = read(gres->balance_fd,&tmp_weight,sizeof(tmp_weight));
 			if(n < 0)
-				ERR("read failed");
+			{
+				if(errno == EAGAIN)
+				{
+					weight_delay++;
+					continue;
+				}
+				else
+					ERR("read balance failed");
+			}
 			if(n == 0)
 			{
 				printf("server offline!\n");
 				break;
 			}
-			//sem_P(gres->sem_id,0);
-			gres->weight = tmp_weight*0.00248;
-			//sem_V(gres->sem_id,0);
-			printf("%fg\n",tmp_weight*0.00248);
+			pthread_rwlock_wrlock(&gres->rwmtx);
+			gres->weight = tmp_weight*base;
+			pthread_rwlock_unlock(&gres->rwmtx);
+			//printf("%fg\n",tmp_weight*base);
 			fflush(stdout);
-			usleep(500*1000);
 		}
-		printf("Final weight:  %fg\n",gres->weight*0.00248);
+		//printf("Final weight:  %fg\n",gres->weight);
 
 		if(!gres->accept_flag)
 			continue;
@@ -113,10 +130,14 @@ void *balance_module_handle(void *arg)
 		if(write(sockfd,pack,sizeof(calculatorProtocol)) != sizeof(calculatorProtocol))
 			ERR("send package failed");
 
+
+		pthread_rwlock_wrlock(&gres->rwmtx);
 		holder_next_frame(&(gres->camera),gres->rgb24);
 		scale_rgb24(gres->rgb24,gres->resize_rgb24,gres->camera.width,gres->camera.height,gres->resize_width,gres->resize_height);
+		pthread_rwlock_unlock(&gres->rwmtx);
 		
 		printf("send the image....\n");
+
 		n = write(sockfd,gres->resize_rgb24,gres->resize_width*gres->resize_height*3);
 		if(n < 0)
 			ERR("send image data failed");
@@ -138,10 +159,10 @@ void *balance_module_handle(void *arg)
 			printf("class: %d\n",pack->type);
 			printf("head: %x\n",pack->head);
 
-			//sem_P(gres->sem_id,1);
+			pthread_rwlock_wrlock(&gres->rwmtx);
 			gres->class_id = pack->type;
 			gres->price =ntohl(pack->length)/100.0; 
-			//sem_V(gres->sem_id,1);
+			pthread_rwlock_unlock(&gres->rwmtx);
 			printf("ClassID: %d\tPrice: %.3fRMB\t Weight: %.3fkg\n",gres->class_id,gres->price,gres->weight);
 		}
 		fflush(stdout);
