@@ -39,10 +39,10 @@ int main(int argc,char *argv[])
 
 	pthread_t balance_pid,display_pid,control_pid;
 	//2. Create balance module pthread.
-	pthread_create(&balance_pid,NULL,balance_module_handle,(void *)&gres);
 	pthread_create(&display_pid,NULL,display_module_handle,(void *)&gres);
-	pthread_join(balance_pid,NULL);
+	pthread_create(&balance_pid,NULL,balance_module_handle,(void *)&gres);
 	pthread_join(display_pid,NULL);
+	pthread_join(balance_pid,NULL);
 	//3. Release main resource.
 	release_global_resource(&gres);	
 	printf("Main process exits!\n");

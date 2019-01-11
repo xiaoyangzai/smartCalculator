@@ -65,15 +65,17 @@ void *display_module_handle(void *arg)
 	struct sockaddr_in clientaddr ;
 	socklen_t addrlen;
 	addrlen = sizeof(clientaddr);
-	addrlen = sizeof(clientaddr);
-	printf("Waiting for connection from client.....\n");
-	connfd = accept(listenfd,(struct sockaddr *)&clientaddr,&addrlen);
-	printf("New client has been coming!!\n");
+	while(1)
+	{
+		printf("Waiting for connection from client.....\n");
+		connfd = accept(listenfd,(struct sockaddr *)&clientaddr,&addrlen);
+		printf("New client has been coming!!\n");
 
-	display_webserver(connfd,gres);
-	close(connfd);
+		display_webserver(connfd,gres);
+		close(connfd);
 
 
+	}
 	pthread_exit(NULL);
 }
 
