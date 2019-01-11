@@ -114,7 +114,7 @@ void *memory_pool_alloc(memory_pool_t *pool,size_t size)
 	return memory_pool_alloc_large(pool,size);
 }
 
-int memory_pool_free(memory_pool_t *pool,void *p)
+int memory_pool_larg_free(memory_pool_t *pool,void *p)
 {
 	memory_pool_large_data_t *pl = NULL;
 	assert(pool != NULL);

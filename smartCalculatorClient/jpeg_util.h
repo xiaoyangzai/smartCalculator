@@ -26,7 +26,7 @@ uint8_t *decode_jpeg (const char *filename, uint32_t *width,uint32_t *height,uin
 	Return:
 		Upon successfully completion, encode_jpeg shall return the 0. Otherwise, -1 shall be returned. 
 */
-int encode_jpeg(uint8_t*rgb24,int width,int height,uint8_t **outbuffer,uint64_t*outlen,memory_pool_t*pool);
+int encode_jpeg(uint8_t*rgb24,int width,int height,uint8_t **outbuffer,uint64_t*outlen);
 
 
 void write_JPEG_file (const char * filename, unsigned char *rgb24,int image_width,int image_height,int quality);

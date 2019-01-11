@@ -35,14 +35,14 @@ int main(int argc,char *argv[])
 	}
 	//1. Main resource initilization.
 	global_resource gres;
-	init_global_resource(&gres,argv[2],atoi(argv[3]),50*1024*1024,224,224,argv[1],4,argv[4],atoi(argv[5]));
+	init_global_resource(&gres,argv[2],atoi(argv[3]),1024*1024,224,224,argv[1],4,argv[4],atoi(argv[5]));
 
 	pthread_t balance_pid,display_pid,control_pid;
 	//2. Create balance module pthread.
 	pthread_create(&display_pid,NULL,display_module_handle,(void *)&gres);
-	pthread_create(&balance_pid,NULL,balance_module_handle,(void *)&gres);
+	//pthread_create(&balance_pid,NULL,balance_module_handle,(void *)&gres);
 	pthread_join(display_pid,NULL);
-	pthread_join(balance_pid,NULL);
+	//pthread_join(balance_pid,NULL);
 	//3. Release main resource.
 	release_global_resource(&gres);	
 	printf("Main process exits!\n");

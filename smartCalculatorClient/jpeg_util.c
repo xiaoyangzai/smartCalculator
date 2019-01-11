@@ -394,7 +394,7 @@ void yuyv_to_rgb(unsigned char* yuyv,unsigned char* rgb24,int w,int h)
 	Return:
 		Upon successfully completion, encode_jpeg shall return the 0. Otherwise, -1 shall be returned. 
 */
-int encode_jpeg(uint8_t*rgb24,int width,int height,uint8_t **outbuffer,uint64_t*outlen,memory_pool_t *pool)
+int encode_jpeg(uint8_t*rgb24,int width,int height,uint8_t **outbuffer,uint64_t*outlen)
 {
 	uint8_t *outdata = rgb24;
 	struct jpeg_compress_struct cinfo = { 0 };
@@ -430,14 +430,5 @@ int encode_jpeg(uint8_t*rgb24,int width,int height,uint8_t **outbuffer,uint64_t*
 
 	jpeg_finish_compress(&cinfo);
 	jpeg_destroy_compress(&cinfo);
-	uint8_t *jpeg_data = (uint8_t *)memory_pool_alloc(pool,*outlen);
-	if(jpeg_data == NULL)
-	{
-		fprintf(stderr,"memory pool allocate failed\n");
-		exit(-1);
-	}
-	memcpy(jpeg_data,*outbuffer,*outlen);
-	free(*outbuffer);
-	*outbuffer = jpeg_data;
 	return 0;
 }

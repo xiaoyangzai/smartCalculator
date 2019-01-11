@@ -74,8 +74,10 @@ ssize_t rio_read(rio_t *rp,char *userbuf,size_t n)
 			rp->rio_bufptr += cnt;
 		}
 	}
+#ifdef DEBUG
 	printf("rio_buff:\n");
 	write(1,rp->rio_buf,rp->rio_cnt);
+#endif
 	if(rp->rio_cnt < (int)n)
 		cnt = rp->rio_cnt;
 	else

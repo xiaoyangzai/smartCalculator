@@ -65,17 +65,23 @@ void *display_module_handle(void *arg)
 	struct sockaddr_in clientaddr ;
 	socklen_t addrlen;
 	addrlen = sizeof(clientaddr);
+	printf("Display module starts!\n");
 	while(1)
 	{
+#ifdef DISPLAY_MODULE_DEBUG
 		printf("Waiting for connection from client.....\n");
+#endif
 		connfd = accept(listenfd,(struct sockaddr *)&clientaddr,&addrlen);
+#ifdef DISPLAY_MODULE_DEBUG
 		printf("New client has been coming!!\n");
+#endif
 
 		display_webserver(connfd,gres);
 		close(connfd);
 
 
 	}
+	printf("Display module exits!\n");
 	pthread_exit(NULL);
 }
 
@@ -103,6 +109,7 @@ void *balance_module_handle(void *arg)
 	int n = 0;
 	int weight_delay = 10; 
 	float base = 0.00248;
+	printf("Balance module start!\n");
 	while(1)
 	{
 		weight_delay = 10;

@@ -16,7 +16,7 @@
 //doResponseWebSocekt处理websocket连接
 int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 {
-#ifdef __PROTOCL_DEBUG__
+#ifdef DEBUG
 	printf("=======  websocket request  =========\n");
 #endif
 	memory_pool_t *pool = gres->pool;
@@ -29,7 +29,7 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 	char *end = strstr(p,"\r\n");
 	*end = '\0';
 	shakeHands(p,WebSocketHeader);
-#ifdef __PROTOCL_DEBUG__
+#ifdef DEBUG
 	printf("=======WebSocketHeader========\n%s\n",WebSocketHeader);
 #endif
 	
@@ -48,16 +48,16 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 		switch(gres->class_id)
 		{
 			case 0:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\n","黄瓜",gres->weight,gres->price);
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","黄瓜",gres->weight,gres->price);
 				break;
 			case 1:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\n","青椒",gres->weight,gres->price);
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","青椒",gres->weight,gres->price);
 				break;
 			case 255:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\n","空",gres->weight,gres->price);
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","空",gres->weight,gres->price);
 				break;
 			default:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\n","未知",gres->weight,gres->price);
+				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","未知",gres->weight,gres->price);
 				break;
 		}
 		fflush(stdout);
@@ -70,7 +70,7 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 		pthread_rwlock_unlock(&gres->rw_image_mtx);
 
 		//解码为JPEG
-		if(encode_jpeg(gres->rgb24,gres->camera.width,gres->camera.height,&jpeg_data,&jpeg_len,pool) != 0)
+		if(encode_jpeg(gres->rgb24,gres->camera.width,gres->camera.height,&jpeg_data,&jpeg_len) != 0)
 		{
 			printf("transform from RGB24 to JPEG failed!!\n");		
 			break;
@@ -88,7 +88,8 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 			ERR("write failed");
 		if(n != jpeg_len)
 			ERR("write failed");
-		usleep(200*1000);
+		free(jpeg_data);
+		usleep(50*1000);
 #ifdef DEBUG
 		printf("image send successfully!!\n");
 #endif
@@ -115,7 +116,9 @@ int shakeHands(const char* data, char* request)
 	memset(val, 0, 256);  
 	strcat((char *)val,(char *)data);
 	strcat((char *)val,"258EAFA5-E914-47DA-95CA-C5AB0DC85B11");  
+#ifdef DEBUG
 	printf("val = %s\n",val);
+#endif
 	uint8_t mt[SHA_DIGEST_LENGTH] = {0};  
 	char accept[256] = {0};  
 	SHA1(val, strlen((char *)val), mt);  
@@ -148,7 +151,9 @@ void display_webserver(int fd,global_resource *gres)
 		sprintf(buf,"%sAccess-Control-Max-Age: 86400\r\n",buf);
 		sprintf(buf,"%sContent-type: text/plain\r\n\r\n",buf);
 		rio_writen(fd,buf,strlen(buf));
+#ifdef DEBUG
 		printf("first response to client!!\n");
+#endif
 	}
 
 	memset(buf,0,sizeof(buf));
@@ -174,7 +179,7 @@ void display_webserver(int fd,global_resource *gres)
 		close(fd);		
 		return;
 	}
-#ifdef __PROTOCL_DEBUG__
+#ifdef DEBUG
 	printf("====== client request header ======= \n");
 #endif
 	write(1,buf,total);
@@ -188,7 +193,7 @@ void display_webserver(int fd,global_resource *gres)
 	}
 	if(strstr(p + 1,"websocket"))
 	{
-#ifdef __PROTOCL_DEBUG__
+#ifdef DEBUG
 		printf("====== client request header ======= \n");
 		printf("===== client websocket request =====\n%s\n",p + 1);
 #endif
@@ -197,7 +202,7 @@ void display_webserver(int fd,global_resource *gres)
 		return;
 	}
 
-#ifdef __PROTOCL_DEBUG__
+#ifdef DEBUG
 	printf("common connection request!!\n");
 #endif
 	//解析GET请求中的URI
@@ -218,7 +223,7 @@ void display_webserver(int fd,global_resource *gres)
 			clienterror(fd,filename,"403","Forbidden","tiny couldn't read the file");
 			return;
 		}
-#ifdef __PROTOCL_DEBUG__
+#ifdef DEBUG
 		printf("response the request!!\n");
 #endif
 		serve_static(fd,filename,sbuf.st_size);
@@ -332,7 +337,9 @@ void serve_static(int fd,char *filename,int filesize)
 	while((n = read(srcfd,buf,sizeof(buf))) > 0)
 		write(fd,buf,n);
 	close(fd);
+#ifdef DEBUG
 	printf("response finished!!\n");
+#endif
 }
 
 //获取文件的后缀名（文件类型）
@@ -365,7 +372,9 @@ void serve_dynamic(int fd,char *filename,char *cgiargs)
 
 	if(fork() == 0)
 	{
+#ifdef DEBUG
 		printf("child cgiargs = %s\n",cgiargs);
+#endif
 		if(setenv("QUERY_STRING",cgiargs,1) < 0)
 			ERR("setenv failed");
 		dup2(fd,STDOUT_FILENO);

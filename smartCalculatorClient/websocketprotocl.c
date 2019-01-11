@@ -13,7 +13,7 @@ int getPocketDataSize(uint8_t *data,uint32_t *size)
 		*size = ntohs(*((uint16_t *)(data + 1)));	
 	else if(frist == 127)
 		*size = ntohll(*((uint16_t *)(data + 1)));
-#ifdef __PROTOCL_DEBUG__
+#ifdef DEBUG
 	printf("data size: %d\n",*size);
 #endif
 	return 0;
@@ -27,7 +27,7 @@ int getMaskKey(uint8_t *data,uint8_t maskKey[])
 	for(i = 0;i < 4;i++)
 		maskKey[i] = mask[i];
 	
-#ifdef __PROTOCL_DEBUG__
+#ifdef DEBUG
 	printf("Mask Key: ");
 	for(i = 0;i < 4;i++)
 		printf(" %2x ",maskKey[i]);
@@ -49,7 +49,7 @@ int transformData(uint8_t *data,uint32_t len,uint8_t maskKey[],uint8_t *outBuff)
 		j = i % 4;
 		outBuff[i] = data[i] ^ maskKey[j];
 	}
-#ifdef __PROTOCL_DEBUG__
+#ifdef DEBUG
 	printf("transate %d bytes data finish!!\n",i);
 #endif
 	return len;
@@ -126,7 +126,7 @@ int sendPocketData(int clientfd,uint8_t *data,uint64_t len,int errorFlag)
 	index = index + len;
 	if(write(clientfd,pocket,index) < 0)
 		ERR("send pocket failed");
-#ifdef __PROTOCL_DEBUG__
+#ifdef DEBUG
 	printf("====== %d Bytes has sent to client =======\n",index);
 	int i = 0;
 	for(i = 0;i < index;i++)
