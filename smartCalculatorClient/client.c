@@ -56,9 +56,9 @@ void *display_module_handle(void *arg)
 	while(1)
 	{
 		pthread_rwlock_rdlock(&gres->rwmtx);
-		printf("ClassID: %d\tWeight: %fg\tPrice: %f\n",gres->class_id,gres->weight,gres->price);
+		printf("ClassID: %d\tWeight: %.3fkg\tPrice: %f\n",gres->class_id,gres->weight,gres->price);
 		pthread_rwlock_unlock(&gres->rwmtx);
-		usleep(200*1000);
+		usleep(100*1000);
 	}
 	pthread_exit(NULL);
 }
@@ -86,7 +86,7 @@ void *balance_module_handle(void *arg)
 	int tmp_weight = 0;
 	int n = 0;
 	int weight_delay = 10; 
-	float base = 0.00198;
+	float base = 0.00248;
 	while(1)
 	{
 		weight_delay = 5;
@@ -112,7 +112,7 @@ void *balance_module_handle(void *arg)
 				break;
 			}
 			pthread_rwlock_wrlock(&gres->rwmtx);
-			gres->weight = tmp_weight*base;
+			gres->weight = tmp_weight*base/1000;
 			pthread_rwlock_unlock(&gres->rwmtx);
 			//printf("%fg\n",tmp_weight*base);
 			fflush(stdout);
@@ -163,7 +163,7 @@ void *balance_module_handle(void *arg)
 			gres->class_id = pack->type;
 			gres->price =ntohl(pack->length)/100.0; 
 			pthread_rwlock_unlock(&gres->rwmtx);
-			printf("ClassID: %d\tPrice: %.3fRMB\t Weight: %.3fkg\n",gres->class_id,gres->price,gres->weight);
+			//printf("ClassID: %d\tPrice: %.3fRMB\t Weight: %.3fkg\n",gres->class_id,gres->price,gres->weight);
 		}
 		fflush(stdout);
 	}
