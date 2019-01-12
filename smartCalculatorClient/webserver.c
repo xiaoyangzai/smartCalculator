@@ -40,11 +40,12 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 	printf("Carmer broadcast model.....\n");
 	uint8_t* jpeg_data = NULL;
 	uint64_t jpeg_len = 0;
+	char *send_buffer = (char *)malloc(3*1024*1024);
 	while(1)
 	{
 
+#ifdef DISPLAY_MODULE_DEBUG_
 		pthread_rwlock_rdlock(&gres->rw_weight_mtx);
-#ifdef DISPLAY_MODULE_DEBUG
 		switch(gres->class_id)
 		{
 			case 0:
@@ -61,8 +62,8 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 				break;
 		}
 		fflush(stdout);
-#endif
 		pthread_rwlock_unlock(&gres->rw_weight_mtx);
+#endif
 
 		//采集图片
 		pthread_rwlock_wrlock(&gres->rw_image_mtx);
@@ -80,13 +81,17 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 #ifdef DEBUG
 		printf("Image size: %d\n",jpeg_len);
 #endif
-		sendWebSocketHeader(fd,BINARY_CODE,jpeg_len);
+		sprintf(send_buffer,"%s","{\"image\":\"data:image/jpeg;base64,");
+		EVP_EncodeBlock(send_buffer + strlen(send_buffer),jpeg_data,jpeg_len);
+		sprintf(send_buffer,"%s\"}",send_buffer);
+		int tmplen = strlen(send_buffer);
+		sendWebSocketHeader(fd,TEXT_CODE,tmplen);
 
 		//发送图像
-		int n = write(fd,jpeg_data,jpeg_len);
+		int n = write(fd,send_buffer,tmplen);
 		if(n < 0)
 			ERR("write failed");
-		if(n != jpeg_len)
+		if(n != tmplen)
 			ERR("write failed");
 		free(jpeg_data);
 		usleep(50*1000);
