@@ -1,40 +1,19 @@
 <html>
 <head>
-<meta http-equiv="content-type" content="text/html" />
+<meta http-equiv="content-type" content="text/html charset=utf-8"/>
 <meta name="author" content="blog.anchen8.net" />
 
 <title>WEB CAMERA</title>
 <script>
-var convertBase64ToBlob = function(base64){
-    var base64Arr = base64.split(',');
-    var imgtype = '';
-    var base64String = '';
-    if(base64Arr.length > 1){
-        //如果是图片base64，去掉头信息
-        base64String = base64Arr[1];
-        imgtype = base64Arr[0].substring(base64Arr[0].indexOf(':')+1,base64Arr[0].indexOf(';'));
-    }
-    // 将base64解码
-    var bytes = atob(base64String);
-    //var bytes = base64;
-    var bytesCode = new ArrayBuffer(bytes.length);
-     // 转换为类型化数组
-    var byteArray = new Uint8Array(bytesCode);
-    
-    // 将base64转换为ascii码
-    for (var i = 0; i < bytes.length; i++) {
-        byteArray[i] = bytes.charCodeAt(i);
-    }
-   
-    // 生成Blob对象（文件对象）
-    return new Blob( [bytesCode] , {type : imgtype});
-};
 var socket;
 var canvas;  
 var context;
 function connect_to_server(){
 	console.log("connect to server.....\n");
 	canvas = document.getElementById("myCanvas");  
+	weight_label = document.getElementById("weight");
+	price_label = document.getElementById("price");
+	class_label = document.getElementById("classid");
 	context = canvas.getContext("2d");  
 	try{
 		socket=new WebSocket('ws://192.168.1.230:8888');
@@ -67,6 +46,9 @@ function sMessage(msg){
 	}
 	//image.src = URL.createObjectURL(json_data.image);
 	image.src = json_data.image;
+	weight_label.value=json_data.weight;
+	price_label.value= json_data.price;
+	class_label.value= json_data.classid;
 }
 
 function sClose(){
@@ -85,6 +67,17 @@ function close(){
 <body>
 
 <canvas align="center" id="myCanvas" style="width: 640; height: 480px;" width="640px" height="480px"></canvas> 
+<form>
+<label>类别</label><input id="classid" type="text" readonly="readonly"/>
+<br/>
+<label>重量</label><input id="weight" type="text" readonly="readonly"/>
+<br/>
+<label>单价</label><input id="price" type="text" readonly="readonly"/>
+<br/>
+<br/>
+<br/>
+<button id="accept" onclick="close();">确认</button>
+</form>
 <br>
 <input id="msg" type="text">
 <br>

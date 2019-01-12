@@ -44,7 +44,6 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 	while(1)
 	{
 
-#ifdef DISPLAY_MODULE_DEBUG_
 		pthread_rwlock_rdlock(&gres->rw_weight_mtx);
 		switch(gres->class_id)
 		{
@@ -61,9 +60,8 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","未知",gres->weight,gres->price);
 				break;
 		}
-		fflush(stdout);
 		pthread_rwlock_unlock(&gres->rw_weight_mtx);
-#endif
+		fflush(stdout);
 
 		//采集图片
 		pthread_rwlock_wrlock(&gres->rw_image_mtx);
@@ -81,7 +79,11 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 #ifdef DEBUG
 		printf("Image size: %d\n",jpeg_len);
 #endif
-		sprintf(send_buffer,"%s","{\"image\":\"data:image/jpeg;base64,");
+
+		pthread_rwlock_rdlock(&gres->rw_weight_mtx);
+		sprintf(send_buffer,"{\"classid\":%d,\"weight\":%f,\"price\":%f,\"image\":\"data:image/jpeg;base64,",gres->class_id,gres->weight,gres->price);
+		pthread_rwlock_unlock(&gres->rw_weight_mtx);
+
 		EVP_EncodeBlock(send_buffer + strlen(send_buffer),jpeg_data,jpeg_len);
 		sprintf(send_buffer,"%s\"}",send_buffer);
 		int tmplen = strlen(send_buffer);

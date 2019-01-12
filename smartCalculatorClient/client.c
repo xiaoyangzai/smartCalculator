@@ -142,10 +142,9 @@ void *balance_module_handle(void *arg)
 #ifdef BALANCE_MODULE_DEBUG
 			printf("%fg\n",tmp_weight*base);
 #endif
-			usleep(20*1000);
 			fflush(stdout);
 		}
-		if(gres->weight <= 0.0010)
+		if(gres->weight <= 0.0100)
 			continue;
 #ifdef BALANCE_MODULE_DEBUG
 		printf("Final weight:  %fkg\n",gres->weight);
