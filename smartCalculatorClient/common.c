@@ -256,17 +256,19 @@ int open_listen(const char *ip,int port)
 	seraddr.sin_addr.s_addr = inet_addr(ip);
 	seraddr.sin_port = htons(port);
 
-	//3、绑定套接字
-	if(bind(sockfd,(struct sockaddr *)&seraddr,sizeof(struct sockaddr_in)) < 0)
-		ERR("bind fialed");
 	//开启socket心跳测试
 	int opt = 1;
 	if(setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE,&opt,sizeof(opt)) < 0)
 		ERR("set socket failed");
 	//设置地址复用，解决多个IP绑定在同个PORT上或处于TIME_WAIT状态的socket,实现socket复用
+	opt = 1;
 	if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR,&opt,sizeof(opt)) < 0)
 		ERR("set socket failed");
-	//4、监听套接字
+
+	//3、绑定套接字
+	if(bind(sockfd,(struct sockaddr *)&seraddr,sizeof(struct sockaddr_in)) < 0)
+		ERR("bind fialed");
+//4、监听套接字
 	if(listen(sockfd,10) < 0)
 		ERR("listen failed");
 	return sockfd;

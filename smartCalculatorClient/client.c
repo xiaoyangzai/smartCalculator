@@ -108,7 +108,7 @@ void *balance_module_handle(void *arg)
 	int tmp_weight = 0;
 	int n = 0;
 	int weight_delay = 10; 
-	float base = 0.00248;
+	float base = 0.00294;
 	printf("Balance module start!\n");
 	while(1)
 	{
@@ -133,7 +133,7 @@ void *balance_module_handle(void *arg)
 			}
 			if(n == 0)
 			{
-				printf("server offline!\n");
+				printf("read balance no content!\n");
 				break;
 			}
 			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
@@ -144,12 +144,12 @@ void *balance_module_handle(void *arg)
 #endif
 			fflush(stdout);
 		}
-		if(gres->weight <= 0.0100)
+		if(gres->weight <= 0.0050)
 			continue;
 #ifdef BALANCE_MODULE_DEBUG
 		printf("Final weight:  %fkg\n",gres->weight);
 #endif
-		if(gres->accept_flag )
+		if(!gres->accept_flag )
 			continue;
 
 #ifdef BALANCE_MODULE_DEBUG
@@ -184,8 +184,13 @@ void *balance_module_handle(void *arg)
 			ERR("read failed");
 		if(n == 0)
 		{
-			printf("server offline\n");
-			break;
+#ifdef BALANCE_MODULE_DEBUG
+			printf("detection server is offline\n");
+#endif
+			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
+			pack->length = 0;
+			pack->type = 254;
+			pthread_rwlock_unlock(&gres->rw_weight_mtx);
 		}
 		else
 		{

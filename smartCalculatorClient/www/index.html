@@ -14,6 +14,7 @@ function connect_to_server(){
 	weight_label = document.getElementById("weight");
 	price_label = document.getElementById("price");
 	class_label = document.getElementById("classid");
+	total_label = document.getElementById("total");
 	context = canvas.getContext("2d");  
 	try{
 		socket=new WebSocket('ws://192.168.1.230:8888');
@@ -35,9 +36,7 @@ function sError(){
 }
 function sMessage(msg){
 	console.log("new data has coming...");
-	console.log(msg.data);
 	var json_data = eval("(" + msg.data+")");
-	console.log(json_data);
 	var image = new Image();
 	image.onload = function()
 	{
@@ -46,47 +45,74 @@ function sMessage(msg){
 	}
 	//image.src = URL.createObjectURL(json_data.image);
 	image.src = json_data.image;
-	weight_label.value=json_data.weight;
-	price_label.value= json_data.price;
+	weight_label.value=json_data.weight + "Kg";
+	price_label.value= json_data.price + "元";
 	class_label.value= json_data.classid;
+	total_label.value = json_data.weight * json_data.price + "元";
 }
 
 function sClose(){
 	console.log("server has offline!!\n");
 }
 function send(){
-	socket.send('hello ,i am client!')
+	socket.send('ok')
 }
 function close(){
 	socket.close();
 }
-
+ 
+ window.onload=connect_to_server;
 </script>
+
+<style type="text/css">
+.btn{
+	 width:200px; height:50px;border-radius: 5px; background:#E3E3E3; line-height:30px; text-align:center; color:#000000;font-size:25px;
+	   font-weight:bold;
+}
+.inputbox{
+border-radius:15px;
+width:111px;
+height:50px;
+	   font-size:25px;
+	   font-weight:bold;
+}
+
+.body{
+	background="./bg.jpg"
+		background-repeat:no-repeat;
+   background-size:100% 100%;
+   background-attachment:fixed;
+}
+
+.italic {
+	font-style:italic
+}
+</style>
+
 </head>
 
-<body>
+<body background="bg.jpg" style=" background-repeat:no-repeat ;background-size:100% 100%; background-attachment:fixed;" >
+<div align="center" style="margin:0 auto;">
+	<hr/>
+	<p class="italic"><font face="arial" color="white" size="5">欢迎使用人工智能电子秤</font></p>
+	<p ><font face="arial" color="white" size="2">开发者:王老师你别走</font></p>
+	<hr/>
+	<div style="margin:0 auto;">
+		<canvas  id="myCanvas" style="width: 640; height: 480px; color:#000000;" width="640px" height="480px"></canvas> 
+	</div>
 
-<canvas align="center" id="myCanvas" style="width: 640; height: 480px;" width="640px" height="480px"></canvas> 
-<form>
-<label>类别</label><input id="classid" type="text" readonly="readonly"/>
-<br/>
-<label>重量</label><input id="weight" type="text" readonly="readonly"/>
-<br/>
-<label>单价</label><input id="price" type="text" readonly="readonly"/>
-<br/>
-<br/>
-<br/>
-<button id="accept" onclick="close();">确认</button>
-</form>
-<br>
-<input id="msg" type="text">
-<br>
-<button id="connect" onclick="connect_to_server();">Connect</button>
-<br>
-<button id="send" onclick="send();">Send</button>
-<br>
-<button id="close" onclick="close();">Close</button>
-<br>
+	<div style="margin:0 auto;">
+		<label><font face="arial" color="white">类别</font></label><input class="inputbox" id="classid" type="text" style="border-radius:9px;" readonly="readonly"/>
+		<label><font face="arial" color="white">重量</font></label><input class="inputbox" id="weight" type="text" readonly="readonly"/>
+		<label><font face="arial" color="white">单价</font></label><input class="inputbox" id="price" type="text" readonly="readonly"/>
+		<label><font face="arial" color="white">总价</font></label><input class="inputbox" id="total" type="text" readonly="readonly"/>
+	</div>
+	<hr/>
+	<div style="margin:0 auto;">
+		<button id="accept" class="btn" onclick="send();"><font face="arial" size="2">确认</font></button>
+		<button id="deny" class="btn" onclick="close();"><font face="arial"  size="2">退出</font></button>
+	</div>
+</div>
 
 </body>
 

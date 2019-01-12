@@ -44,6 +44,7 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 	while(1)
 	{
 
+#if DEBUG
 		pthread_rwlock_rdlock(&gres->rw_weight_mtx);
 		switch(gres->class_id)
 		{
@@ -62,6 +63,7 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 		}
 		pthread_rwlock_unlock(&gres->rw_weight_mtx);
 		fflush(stdout);
+#endif
 
 		//采集图片
 		pthread_rwlock_wrlock(&gres->rw_image_mtx);
@@ -81,7 +83,7 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 #endif
 
 		pthread_rwlock_rdlock(&gres->rw_weight_mtx);
-		sprintf(send_buffer,"{\"classid\":%d,\"weight\":%f,\"price\":%f,\"image\":\"data:image/jpeg;base64,",gres->class_id,gres->weight,gres->price);
+		sprintf(send_buffer,"{\"classid\":\"%s\",\"weight\":%.3f,\"price\":%.3f,\"image\":\"data:image/jpeg;base64,","空",gres->weight,gres->price);
 		pthread_rwlock_unlock(&gres->rw_weight_mtx);
 
 		EVP_EncodeBlock(send_buffer + strlen(send_buffer),jpeg_data,jpeg_len);
@@ -145,23 +147,6 @@ void display_webserver(int fd,global_resource *gres)
 	char buf[MAXLINE],method[MAXLINE],uri[MAXLINE],version[MAXLINE];
 
 	char filename[MAXLINE],cgiargs[MAXLINE];
-
-	if(0)
-	{
-		//发送响应报头给客户端
-		sprintf(buf,"HTTP/1.1 200 OK\r\n");
-		sprintf(buf,"%s Server: Tiny Web Server\r\n",buf);
-		sprintf(buf,"%sContent-length: 0\r\n",buf);
-		sprintf(buf,"%sAccess-Control-Allow-Origin: *\r\n",buf);
-		sprintf(buf,"%sAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\n",buf);
-		sprintf(buf,"%sAccess-Control-Allow-Headers: X-PINGOTHER, Content-Type\r\n",buf);
-		sprintf(buf,"%sAccess-Control-Max-Age: 86400\r\n",buf);
-		sprintf(buf,"%sContent-type: text/plain\r\n\r\n",buf);
-		rio_writen(fd,buf,strlen(buf));
-#ifdef DEBUG
-		printf("first response to client!!\n");
-#endif
-	}
 
 	memset(buf,0,sizeof(buf));
 	memory_pool_t *pool = gres->pool;
