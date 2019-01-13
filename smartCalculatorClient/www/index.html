@@ -71,6 +71,7 @@ function send(){
 	var order = "class: "+class_label.value +",price: " + price_label.value +",weight: "+weight_label.value + ",total: " + total_label.value;   
 	console.log(order);
 	socket.send(order);
+	alert("order info: " + order);
 }
 function close(){
 	socket.close();

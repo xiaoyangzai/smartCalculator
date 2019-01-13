@@ -168,8 +168,16 @@ void *balance_module_handle(void *arg)
 			fflush(stdout);
 		}
 		if(gres->weight <= 0.0050)
+		{
+
+			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
+			gres->class_id = 255;	
+			pthread_rwlock_unlock(&gres->rw_weight_mtx);
 			continue;
+		}
+#ifdef BALANCE_MODULE_DEBUG
 		printf("Final weight:  %fkg\n",gres->weight);
+#endif
 
 		pthread_rwlock_rdlock(&gres->rw_accept_mtx);
 		int accept_flag = gres->accept_flag;
@@ -192,15 +200,20 @@ void *balance_module_handle(void *arg)
 			struct tm *nt = localtime(&tt);
 			sprintf(time_buf,"%d-%d-%d %d:%d:%d",nt->tm_year+1900,nt->tm_mon + 1,nt->tm_mday,nt->tm_hour,nt->tm_min,nt->tm_sec);
 			sprintf(buf,"insert into orders(vegetable_id,weights,price,order_time) values(%d,%.3f,%.3f,\"%s\")",classid,weight,price,time_buf);
-			printf("%s\n",buf);
 
-			//int ret = mysql_query(&gres->mysql,buf);
-			//if(ret != 0)
-			//{
-			//	printf("insert failed: %s\n",mysql_error(&gres->mysql));
-			//	exit(-1);
-			//}
+#ifdef BALANCE_MODULE_DEBUG
+			printf("%s\n",buf);
+#endif
+
+			int ret = mysql_query(&gres->mysql,buf);
+			if(ret != 0)
+			{
+				printf("insert failed: %s\n",mysql_error(&gres->mysql));
+				exit(-1);
+			}
+#ifdef BALANCE_MODULE_DEBUG
 			printf("Order info, classid: %d\tweight: %.3f\tprice: %.3f\ttotal: %.3f\n",gres->class_id,gres->weight,gres->price,gres->weight*gres->price);
+#endif
 
 			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
 			gres->class_id = 255;
@@ -256,10 +269,12 @@ void *balance_module_handle(void *arg)
 			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
 			gres->class_id = pack->type;
 			pthread_rwlock_unlock(&gres->rw_weight_mtx);
-
 			char buf[256];
 			sprintf(buf,"select price from vegetable where id = %d",gres->class_id);
+
+#ifdef BALANCE_MODULE_DEBUG
 			printf("%s\n",buf);
+#endif
 
 			int ret = mysql_query(&gres->mysql,buf);
 			if(ret != 0)
@@ -279,7 +294,10 @@ void *balance_module_handle(void *arg)
 			gres->price =atof(row[0]); 
 			pthread_rwlock_unlock(&gres->rw_weight_mtx);
 			mysql_free_result(result);
+
+#ifdef BALANCE_MODULE_DEBUG
 			printf("price: %.3f\n",gres->price);
+#endif
 		}
 		fflush(stdout);
 	}
