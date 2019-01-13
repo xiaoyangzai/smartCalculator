@@ -28,14 +28,14 @@
 
 int main(int argc,char *argv[])
 {
-	if(argc != 6)
+	if(argc != 7)
 	{
-		printf("usage: ./client [video device path] [IP] [Port] [Balance device path] [8888]\n");
+		printf("usage: ./client [video device path] [IP] [Port] [Balance device path] [Webserver port(8888)] [Mysql server IP]\n");
 		return -1;
 	}
 	//1. Main resource initilization.
 	global_resource gres;
-	init_global_resource(&gres,argv[2],atoi(argv[3]),1024*1024,224,224,argv[1],4,argv[4],atoi(argv[5]));
+	init_global_resource(&gres,argv[2],atoi(argv[3]),1024*1024,224,224,argv[1],4,argv[4],atoi(argv[5]),argv[6]);
 
 	pthread_t balance_pid,display_pid,control_pid;
 	//2. Create balance module pthread.

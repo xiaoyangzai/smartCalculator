@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <assert.h>
+#include <time.h>
 #include "common.h"
 #include "memory_pool.h"
 #include "jpeg_util.h"
@@ -9,7 +10,7 @@
 #include "client.h"
 
 
-int init_global_resource(global_resource * resource,const char *server_ip,short server_port,size_t pool_size,uint32_t resize_width,uint32_t resize_height,const char *camera_path,int frame_buff_count,const char *balance_path,short web_port)
+int init_global_resource(global_resource * resource,const char *server_ip,short server_port,size_t pool_size,uint32_t resize_width,uint32_t resize_height,const char *camera_path,int frame_buff_count,const char *balance_path,short web_port,const char *mysql_ip)
 {
 	assert(resource != NULL);
 	resource->pool = memory_pool_create(pool_size);
@@ -45,6 +46,27 @@ int init_global_resource(global_resource * resource,const char *server_ip,short 
 		ERR("pthread rwlock initialized failed");
 	printf("Main Resource is initialized!\n");
 	resource->websockfd = -1;
+
+	//连接数据库
+	printf("Mysql connect....\r");
+	if(mysql_init(&resource->mysql) == NULL)
+	{
+		printf("mysql initialize failed: %s\n",mysql_error(&resource->mysql));
+		exit(-1);
+	}
+	if(mysql_real_connect(&resource->mysql,mysql_ip,"root","123456","wangyang",0,NULL,0) == NULL)
+	{
+		printf("connect to mysql server failed: %s\n",mysql_error(&resource->mysql));
+		exit(-1);
+	}
+	int ret = mysql_query(&resource->mysql,"set names utf8");
+	if(ret != 0)
+	{
+		printf("set names utf8 failed: %s\n",mysql_error(&resource->mysql));
+		return -1;
+	}
+
+	printf("Mysql connect ok!\n");
 	return 0;
 }
 int release_global_resource(global_resource * resource)
@@ -55,6 +77,7 @@ int release_global_resource(global_resource * resource)
 	memory_pool_destroy(resource->pool);
 	pthread_rwlock_destroy(&(resource->rw_image_mtx));
 	pthread_rwlock_destroy(&(resource->rw_weight_mtx));
+	mysql_close(&resource->mysql);
 	printf("Main Resource has been cleaned up!\n");
 	return 0;
 }
@@ -115,7 +138,6 @@ void *balance_module_handle(void *arg)
 		//称重
 		weight_delay = 10;
 
-
 #ifdef BALANCE_MODULE_DEBUG
 		printf("start to balance something....\n");
 #endif
@@ -141,15 +163,14 @@ void *balance_module_handle(void *arg)
 			gres->weight = tmp_weight*base/1000;
 			pthread_rwlock_unlock(&gres->rw_weight_mtx);
 #ifdef BALANCE_MODULE_DEBUG
-			printf("%fg\n",tmp_weight*base);
+			printf("%fg\r",tmp_weight*base);
 #endif
 			fflush(stdout);
 		}
 		if(gres->weight <= 0.0050)
 			continue;
-#ifdef BALANCE_MODULE_DEBUG
 		printf("Final weight:  %fkg\n",gres->weight);
-#endif
+
 		pthread_rwlock_rdlock(&gres->rw_accept_mtx);
 		int accept_flag = gres->accept_flag;
 		pthread_rwlock_unlock(&gres->rw_accept_mtx);
@@ -158,12 +179,33 @@ void *balance_module_handle(void *arg)
 			pthread_rwlock_wrlock(&gres->rw_accept_mtx);
 			gres->accept_flag = 0;
 			pthread_rwlock_unlock(&gres->rw_accept_mtx);
+			char time_buf[20];
+			char buf[100];
+			float weight = gres->weight;
+			float price = gres->price;
+			int classid = gres->class_id;
+			if(classid == 255)
+				continue;
+			//插入数据库
+			time_t tt;
+			time(&tt);
+			struct tm *nt = localtime(&tt);
+			sprintf(time_buf,"%d-%d-%d %d:%d:%d",nt->tm_year+1900,nt->tm_mon + 1,nt->tm_mday,nt->tm_hour,nt->tm_min,nt->tm_sec);
+			sprintf(buf,"insert into orders(vegetable_id,weights,price,order_time) values(%d,%.3f,%.3f,\"%s\")",classid,weight,price,time_buf);
+			printf("%s\n",buf);
 
-			pthread_rwlock_rdlock(&gres->rw_weight_mtx);
+			//int ret = mysql_query(&gres->mysql,buf);
+			//if(ret != 0)
+			//{
+			//	printf("insert failed: %s\n",mysql_error(&gres->mysql));
+			//	exit(-1);
+			//}
 			printf("Order info, classid: %d\tweight: %.3f\tprice: %.3f\ttotal: %.3f\n",gres->class_id,gres->weight,gres->price,gres->weight*gres->price);
+
+			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
+			gres->class_id = 255;
 			pthread_rwlock_unlock(&gres->rw_weight_mtx);
 		}
-		continue;
 #ifdef BALANCE_MODULE_DEBUG
 		printf("Capture the image....\n");
 #endif
@@ -201,7 +243,7 @@ void *balance_module_handle(void *arg)
 #endif
 			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
 			pack->length = 0;
-			pack->type = 254;
+			pack->type = 255;
 			pthread_rwlock_unlock(&gres->rw_weight_mtx);
 		}
 		else
@@ -211,12 +253,33 @@ void *balance_module_handle(void *arg)
 			printf("class: %d\n",pack->type);
 			printf("head: %x\n",pack->head);
 #endif
-
 			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
 			gres->class_id = pack->type;
-			gres->price =ntohl(pack->length)/100.0; 
 			pthread_rwlock_unlock(&gres->rw_weight_mtx);
-			//printf("ClassID: %d\tPrice: %.3fRMB\t Weight: %.3fkg\n",gres->class_id,gres->price,gres->weight);
+
+			char buf[256];
+			sprintf(buf,"select price from vegetable where id = %d",gres->class_id);
+			printf("%s\n",buf);
+
+			int ret = mysql_query(&gres->mysql,buf);
+			if(ret != 0)
+			{
+				printf("query failed: %s\n",mysql_error(&gres->mysql));
+				exit(-1);
+			}
+			MYSQL_RES	*result = NULL;
+			result = mysql_store_result(&gres->mysql);
+			if(result == NULL)
+			{
+				printf("mysql store result failed: %s\n",mysql_error(&gres->mysql));
+				exit(-1);
+			}
+			MYSQL_ROW row = mysql_fetch_row(result);
+			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
+			gres->price =atof(row[0]); 
+			pthread_rwlock_unlock(&gres->rw_weight_mtx);
+			mysql_free_result(result);
+			printf("price: %.3f\n",gres->price);
 		}
 		fflush(stdout);
 	}
@@ -235,7 +298,9 @@ void *control_module_handle(void *arg)
 	printf("Control module starts!\n");
 	while(1)
 	{
+#ifdef CONTROL_MODULE_DEBUG
 		printf("wait for data....\n");
+#endif
 		n = read(fd,buf,sizeof(buf));
 		if(n == 0)
 		{
@@ -244,8 +309,8 @@ void *control_module_handle(void *arg)
 		}
 		if(n < 0)
 			ERR("read failed");
-		//write(1,buf,n);
-		//printf("\n");
+		printf("[Control module]ensure order!\n");
+
 		pthread_rwlock_wrlock(&gres->rw_accept_mtx);
 		gres->accept_flag = 1;
 		pthread_rwlock_unlock(&gres->rw_accept_mtx);

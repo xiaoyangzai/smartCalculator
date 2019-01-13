@@ -1,5 +1,6 @@
 #ifndef __CLIETN_H__
 #define __CLIETN_H__	
+#include "/usr/include/mysql/mysql.h"
 #include "memory_pool.h"
 #include "video_util.h"
 typedef struct _global_resource{
@@ -24,6 +25,7 @@ typedef struct _global_resource{
 	//display module listen port
 	short web_port;
 	int websockfd; 
+	MYSQL mysql;
 }global_resource;
 
 #pragma pack(1)
@@ -35,7 +37,7 @@ typedef struct _protocol{
 #pragma pack()
 
 //Main resource initilization.
-int init_global_resource(global_resource * resource,const char *server_ip,short server_port,size_t pool_size,uint32_t resize_width,uint32_t resize_height,const char *camera_path,int frame_buff_count,const char *balance_path,short port);
+int init_global_resource(global_resource * resource,const char *server_ip,short server_port,size_t pool_size,uint32_t resize_width,uint32_t resize_height,const char *camera_path,int frame_buff_count,const char *balance_path,short port,const char *mysqlip);
 int release_global_resource(global_resource * resource);
 
 //balance module pthread function.

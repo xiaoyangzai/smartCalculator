@@ -54,27 +54,6 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 	while(1)
 	{
 
-#if DEBUG
-		pthread_rwlock_rdlock(&gres->rw_weight_mtx);
-		switch(gres->class_id)
-		{
-			case 0:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","黄瓜",gres->weight,gres->price);
-				break;
-			case 1:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","青椒",gres->weight,gres->price);
-				break;
-			case 255:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","空",gres->weight,gres->price);
-				break;
-			default:
-				printf("ClassID: %s\tWeight: %.3fkg\tPrice: %f\r","未知",gres->weight,gres->price);
-				break;
-		}
-		pthread_rwlock_unlock(&gres->rw_weight_mtx);
-		fflush(stdout);
-#endif
-
 		//采集图片
 		pthread_rwlock_wrlock(&gres->rw_image_mtx);
 		holder_next_frame(&(gres->camera),gres->rgb24);
@@ -91,10 +70,37 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 #ifdef DEBUG
 		printf("Image size: %d\n",jpeg_len);
 #endif
-
 		pthread_rwlock_rdlock(&gres->rw_weight_mtx);
-		sprintf(send_buffer,"{\"classid\":\"%s\",\"weight\":%.3f,\"price\":%.3f,\"image\":\"data:image/jpeg;base64,","空",gres->weight,gres->price);
+		int weight = gres->weight;
+		int price = gres->price;
+		int class_id = gres->class_id;
 		pthread_rwlock_unlock(&gres->rw_weight_mtx);
+
+
+		if(class_id != 255)
+		{
+			sprintf(send_buffer,"select name from vegetable where id = %d",class_id);
+			int ret = mysql_query(&gres->mysql,send_buffer);
+			if(ret != 0)
+			{
+				printf("query failed: %s\n",mysql_error(&gres->mysql));
+				exit(-1);
+			}
+			MYSQL_RES	*result = NULL;
+			result = mysql_store_result(&gres->mysql);
+			if(result == NULL)
+			{
+				printf("mysql store result failed: %s\n",mysql_error(&gres->mysql));
+				exit(-1);
+			}
+			
+			MYSQL_ROW row = mysql_fetch_row(result);
+			sprintf(send_buffer,"{\"classid\":\"%s\",\"weight\":%.3f,\"price\":%.3f,\"image\":\"data:image/jpeg;base64,",row[0],gres->weight,gres->price);
+		}
+		else
+			sprintf(send_buffer,"{\"classid\":\"%s\",\"weight\":%.3f,\"price\":%.3f,\"image\":\"data:image/jpeg;base64,","---",gres->weight,gres->price);
+
+		printf("send buffer: %s\n",send_buffer);
 
 		EVP_EncodeBlock(send_buffer + strlen(send_buffer),jpeg_data,jpeg_len);
 		sprintf(send_buffer,"%s\"}",send_buffer);
@@ -102,13 +108,13 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 		sendWebSocketHeader(fd,TEXT_CODE,tmplen);
 
 		//发送图像
-		int n = write(fd,send_buffer,tmplen);
+		int n = rio_writen(fd,send_buffer,tmplen);
 		if(n < 0)
 			ERR("write failed");
 		if(n != tmplen)
 			ERR("write failed");
 		free(jpeg_data);
-		usleep(50*1000);
+		usleep(150*1000);
 #ifdef DEBUG
 		printf("image send successfully!!\n");
 #endif

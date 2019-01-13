@@ -12,6 +12,8 @@ var weight_label;
 var price_label;
 var class_label;
 var total_label;
+var image;
+var json_data;
 function connect_to_server(){
 	console.log("connect to server.....\n");
 	canvas = document.getElementById("myCanvas");  
@@ -23,6 +25,8 @@ function connect_to_server(){
 	class_label.value = "空";
 	total_label = document.getElementById("total");
 	total_label.value = 0+"元";
+	image = new Image();
+
 	context = canvas.getContext("2d");  
 	try{
 		socket=new WebSocket('ws://192.168.1.230:8888');
@@ -44,15 +48,13 @@ function sError(){
 }
 function sMessage(msg){
 	console.log("new data has coming...");
-	var json_data = eval("(" + msg.data+")");
-	var image = new Image();
+	json_data = eval("(" + msg.data+")");
+	image.src = json_data.image;
 	image.onload = function()
 	{
 		context.clearRect(0, 0,canvas.width, canvas.height);  
 		context.drawImage(image, 0, 0, canvas.width, canvas.height);  
 	}
-	//image.src = URL.createObjectURL(json_data.image);
-	image.src = json_data.image;
 	weight_label.value=json_data.weight + "Kg";
 	price_label.value= json_data.price + "元";
 	class_label.value= json_data.classid;
@@ -64,6 +66,8 @@ function sClose(){
 }
 function send(){
 
+	if(class_label.value == "空" || weight_label.value=="0Kg" || price_label.value=="0元")
+		return;
 	var order = "class: "+class_label.value +",price: " + price_label.value +",weight: "+weight_label.value + ",total: " + total_label.value;   
 	console.log(order);
 	socket.send(order);
