@@ -8,13 +8,21 @@
 var socket;
 var canvas;  
 var context;
+var weight_label;
+var price_label;
+var class_label;
+var total_label;
 function connect_to_server(){
 	console.log("connect to server.....\n");
 	canvas = document.getElementById("myCanvas");  
 	weight_label = document.getElementById("weight");
+	weight_label.value= 0 + "Kg";
 	price_label = document.getElementById("price");
+	price_label.value = 0+"元";
 	class_label = document.getElementById("classid");
+	class_label.value = "空";
 	total_label = document.getElementById("total");
+	total_label.value = 0+"元";
 	context = canvas.getContext("2d");  
 	try{
 		socket=new WebSocket('ws://192.168.1.230:8888');
@@ -55,7 +63,10 @@ function sClose(){
 	console.log("server has offline!!\n");
 }
 function send(){
-	socket.send('ok')
+
+	var order = "class: "+class_label.value +",price: " + price_label.value +",weight: "+weight_label.value + ",total: " + total_label.value;   
+	console.log(order);
+	socket.send(order);
 }
 function close(){
 	socket.close();
@@ -98,14 +109,14 @@ height:50px;
 	<p ><font face="arial" color="white" size="2">开发者:王老师你别走</font></p>
 	<hr/>
 	<div style="margin:0 auto;">
-		<canvas  id="myCanvas" style="width: 640; height: 480px; color:#000000;" width="640px" height="480px"></canvas> 
+		<canvas  id="myCanvas" style="width: 320; height: 240px; color:#000000;" width="320px" height="240px"></canvas> 
 	</div>
 
 	<div style="margin:0 auto;">
-		<label><font face="arial" color="white">类别</font></label><input class="inputbox" id="classid" type="text" style="border-radius:9px;" readonly="readonly"/>
-		<label><font face="arial" color="white">重量</font></label><input class="inputbox" id="weight" type="text" readonly="readonly"/>
-		<label><font face="arial" color="white">单价</font></label><input class="inputbox" id="price" type="text" readonly="readonly"/>
-		<label><font face="arial" color="white">总价</font></label><input class="inputbox" id="total" type="text" readonly="readonly"/>
+		<label><font face="arial" color="white">类别</font></label><input class="inputbox" id="classid" type="text" style="border-radius:9px;"/>
+		<label><font face="arial" color="white">重量</font></label><input class="inputbox" id="weight" type="text"/>
+		<label><font face="arial" color="white">单价</font></label><input class="inputbox" id="price" type="text"/>
+		<label><font face="arial" color="white">总价</font></label><input class="inputbox" id="total" type="text" />
 	</div>
 	<hr/>
 	<div style="margin:0 auto;">

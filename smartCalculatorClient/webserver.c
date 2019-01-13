@@ -37,7 +37,17 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 	if(write(fd,WebSocketHeader,strlen(WebSocketHeader)) < 0)
 		ERR("send header failed");
 
+	//修改网络套接字为非阻塞读方式
+	//int flags = fcntl(fd,F_GETFL,0);
+	//if(flags == -1)
+	//	flags = 0;
+	//if(fcntl(fd,F_SETFL,flags|O_NONBLOCK) < 0)
+	//	ERR("fcntl failed");
+
 	printf("Carmer broadcast model.....\n");
+	pthread_t read_pid;
+	gres->websockfd = fd; 
+	pthread_create(&read_pid,NULL,control_module_handle,(void *)gres);
 	uint8_t* jpeg_data = NULL;
 	uint64_t jpeg_len = 0;
 	char *send_buffer = (char *)malloc(3*1024*1024);
@@ -103,6 +113,7 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 		printf("image send successfully!!\n");
 #endif
 	}
+	pthread_join(read_pid,NULL);
 	close(fd);
 	return 0;
 }

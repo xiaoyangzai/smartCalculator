@@ -20,8 +20,10 @@ typedef struct _global_resource{
 	//read-write lock
 	pthread_rwlock_t rw_image_mtx;
 	pthread_rwlock_t rw_weight_mtx;
+	pthread_rwlock_t rw_accept_mtx;
 	//display module listen port
 	short web_port;
+	int websockfd; 
 }global_resource;
 
 #pragma pack(1)

@@ -41,7 +41,10 @@ int init_global_resource(global_resource * resource,const char *server_ip,short 
 		ERR("pthread rwlock initialized failed");
 	if(pthread_rwlock_init(&(resource->rw_weight_mtx),NULL)!=0)
 		ERR("pthread rwlock initialized failed");
+	if(pthread_rwlock_init(&(resource->rw_accept_mtx),NULL)!=0)
+		ERR("pthread rwlock initialized failed");
 	printf("Main Resource is initialized!\n");
+	resource->websockfd = -1;
 	return 0;
 }
 int release_global_resource(global_resource * resource)
@@ -75,11 +78,8 @@ void *display_module_handle(void *arg)
 #ifdef DISPLAY_MODULE_DEBUG
 		printf("New client has been coming!!\n");
 #endif
-
 		display_webserver(connfd,gres);
 		close(connfd);
-
-
 	}
 	printf("Display module exits!\n");
 	pthread_exit(NULL);
@@ -112,8 +112,9 @@ void *balance_module_handle(void *arg)
 	printf("Balance module start!\n");
 	while(1)
 	{
-		weight_delay = 10;
 		//称重
+		weight_delay = 10;
+
 
 #ifdef BALANCE_MODULE_DEBUG
 		printf("start to balance something....\n");
@@ -149,9 +150,20 @@ void *balance_module_handle(void *arg)
 #ifdef BALANCE_MODULE_DEBUG
 		printf("Final weight:  %fkg\n",gres->weight);
 #endif
-		if(!gres->accept_flag )
-			continue;
+		pthread_rwlock_rdlock(&gres->rw_accept_mtx);
+		int accept_flag = gres->accept_flag;
+		pthread_rwlock_unlock(&gres->rw_accept_mtx);
+		if(accept_flag)
+		{
+			pthread_rwlock_wrlock(&gres->rw_accept_mtx);
+			gres->accept_flag = 0;
+			pthread_rwlock_unlock(&gres->rw_accept_mtx);
 
+			pthread_rwlock_rdlock(&gres->rw_weight_mtx);
+			printf("Order info, classid: %d\tweight: %.3f\tprice: %.3f\ttotal: %.3f\n",gres->class_id,gres->weight,gres->price,gres->weight*gres->price);
+			pthread_rwlock_unlock(&gres->rw_weight_mtx);
+		}
+		continue;
 #ifdef BALANCE_MODULE_DEBUG
 		printf("Capture the image....\n");
 #endif
@@ -210,5 +222,35 @@ void *balance_module_handle(void *arg)
 	}
 	printf("balance module will exit!!\n");
 	close(sockfd);
+	pthread_exit(NULL);
+}
+
+//Control module pthread function.
+void *control_module_handle(void *arg)
+{
+	global_resource *gres = (global_resource *)arg;
+	int fd = gres->websockfd;
+	char buf[256] = {0};
+	int n = 0;
+	printf("Control module starts!\n");
+	while(1)
+	{
+		printf("wait for data....\n");
+		n = read(fd,buf,sizeof(buf));
+		if(n == 0)
+		{
+			printf("server has closed!\n");
+			break;
+		}
+		if(n < 0)
+			ERR("read failed");
+		//write(1,buf,n);
+		//printf("\n");
+		pthread_rwlock_wrlock(&gres->rw_accept_mtx);
+		gres->accept_flag = 1;
+		pthread_rwlock_unlock(&gres->rw_accept_mtx);
+
+	}
+	printf("Control module will exit!\n");
 	pthread_exit(NULL);
 }
