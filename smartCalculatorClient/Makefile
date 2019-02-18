@@ -2,7 +2,7 @@ all=calculatorClient
 SOURCE=$(wildcard *.c)
 OBJS=$(patsubst %.c,%.o,$(SOURCE))
 LIBS=-L./libjpeg_arm/lib -ljpeg -lpthread  -L./libopenssl_arm/lib -lcrypto -L./libjpeg_arm/lib/ -L./libmysql_arm/lib/mysql -lmysqlclient 
-CFLAGS=-I./libjpeg_arm/include -I./libmysql_arm/include  -I./libopenssl_arm/include/
+CFLAGS=-I./libjpeg_arm/include -I./libmysql_arm/include  -I./libopenssl_arm/include/ -DBALANCE_MODULE_DEBUG -DDISPLAY_MODULE_DEBUG -DCONTROL_MODULE_DEBUG
 CC=arm-linux-gcc
 
 .PHONY:clean

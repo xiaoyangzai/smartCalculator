@@ -6,28 +6,17 @@
 <title>WEB CAMERA</title>
 <script>
 var socket;
-var canvas;  
-var context;
-var weight_label;
-var price_label;
-var class_label;
-var total_label;
-var image;
-var json_data;
 function connect_to_server(){
 	console.log("connect to server.....\n");
-	canvas = document.getElementById("myCanvas");  
-	weight_label = document.getElementById("weight");
+	var weight_label = document.getElementById("weight");
 	weight_label.value= 0 + "Kg";
-	price_label = document.getElementById("price");
+	var price_label = document.getElementById("price");
 	price_label.value = 0+"元";
-	class_label = document.getElementById("classid");
+	var class_label = document.getElementById("classid");
 	class_label.value = "空";
-	total_label = document.getElementById("total");
+	var total_label = document.getElementById("total");
 	total_label.value = 0+"元";
-	image = new Image();
 
-	context = canvas.getContext("2d");  
 	try{
 		socket=new WebSocket('ws://192.168.1.230:8888');
 	}catch(e){
@@ -48,17 +37,28 @@ function sError(){
 }
 function sMessage(msg){
 	console.log("new data has coming...");
-	json_data = eval("(" + msg.data+")");
+	var weight_label = document.getElementById("weight");
+	var price_label = document.getElementById("price");
+	var class_label = document.getElementById("classid");
+	var total_label = document.getElementById("total");
+	var json_data = eval("(" + msg.data+")");
+	msg.data = null;
+	var image = new Image();
 	image.src = json_data.image;
 	image.onload = function()
 	{
+		var canvas = document.getElementById("myCanvas");  
+		var context = canvas.getContext("2d");  
 		context.clearRect(0, 0,canvas.width, canvas.height);  
 		context.drawImage(image, 0, 0, canvas.width, canvas.height);  
+		image = null;
 	}
 	weight_label.value=json_data.weight + "Kg";
 	price_label.value= json_data.price + "元";
 	class_label.value= json_data.classid;
 	total_label.value = json_data.weight * json_data.price + "元";
+	json_data = null;
+
 }
 
 function sClose(){

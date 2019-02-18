@@ -172,6 +172,8 @@ void *balance_module_handle(void *arg)
 
 			pthread_rwlock_wrlock(&gres->rw_weight_mtx);
 			gres->class_id = 255;	
+			gres->price = 0.0;
+			gres->weight = 0.0;
 			pthread_rwlock_unlock(&gres->rw_weight_mtx);
 			continue;
 		}
@@ -228,8 +230,6 @@ void *balance_module_handle(void *arg)
 		pack->length = htonl(gres->resize_width*gres->resize_height*3);
 		if(write(sockfd,pack,sizeof(calculatorProtocol)) != sizeof(calculatorProtocol))
 			ERR("send package failed");
-
-
 		//缩放图像
 		pthread_rwlock_rdlock(&gres->rw_image_mtx);
 		scale_rgb24(gres->rgb24,gres->resize_rgb24,gres->camera.width,gres->camera.height,gres->resize_width,gres->resize_height);
@@ -300,6 +300,7 @@ void *balance_module_handle(void *arg)
 #endif
 		}
 		fflush(stdout);
+		usleep(300*1000);
 	}
 	printf("balance module will exit!!\n");
 	close(sockfd);

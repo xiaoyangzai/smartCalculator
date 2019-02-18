@@ -105,16 +105,15 @@ int doResponseWebSocket(char *reqPtr,int fd,global_resource *gres)
 		EVP_EncodeBlock(send_buffer + strlen(send_buffer),jpeg_data,jpeg_len);
 		sprintf(send_buffer,"%s\"}",send_buffer);
 		int tmplen = strlen(send_buffer);
+		//发送重量、单价、图像数据到网页端显示
 		sendWebSocketHeader(fd,TEXT_CODE,tmplen);
-
-		//发送图像
 		int n = rio_writen(fd,send_buffer,tmplen);
 		if(n < 0)
 			ERR("write failed");
 		if(n != tmplen)
 			ERR("write failed");
 		free(jpeg_data);
-		usleep(150*1000);
+		usleep(80*1000);
 #ifdef DEBUG
 		printf("image send successfully!!\n");
 #endif
