@@ -86,10 +86,10 @@ static void mini210_hx711_timer(unsigned long _data)
 	printk("timeout,check weight....\n");
 	//读取电子秤获取重量
 	read_hx711_data(bdata);
-	weight = (weight - 8408500) < 0 ? 0 : (weight - 8408500); 
-	printk("output weight: %d\n",weight+8408500);
+	weight = (weight - 8414300) < 0 ? 0 : (weight - 8414300); 
+	printk("output weight: %d\n",weight+8414300);
 	if (weight >= 0) {
-		if(weight < 2000)
+		if(weight < 1000)
 			weight = 0;
 		ev_press = 1;
 		wake_up_interruptible(&hx711_waitq);

@@ -1,5 +1,5 @@
 obj-m := mini210_hx711.o
-KDIR=/home/wy/tiny210/linux-3.0.8
+KDIR=/home/wy/arm_project/tiny210/linux-3.0.8
 
 CROSS_COMPILE=arm-linux-
 CC=$(CROSS_COMPILE)gcc

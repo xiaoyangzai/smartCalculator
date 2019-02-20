@@ -120,7 +120,7 @@ void *balance_module_handle(void *arg)
 	serverInfo.sin_port = htons(gres->server_port);
 	serverInfo.sin_addr.s_addr = inet_addr(gres->server_ip);
 
-	//连接远程服务器
+	//连接图像识别算法模型远程服务器
 	printf("connect to server....\n");
 	if(connect(sockfd,(struct sockaddr *)&serverInfo,sizeof(serverInfo)) < 0)
 		ERR("connect failed");
