@@ -18,9 +18,9 @@ void PthreadBalance::run()
          {
              //1: 降低称重值,0: 增加称重值
              if(weight *base > 0.0)
-                ioctl(balance_fd,1,200);
+                ioctl(balance_fd,1,300);
              else
-                 ioctl(balance_fd,0,200);
+                 ioctl(balance_fd,0,300);
              emit signal_update_weight(weight*base);
          }
          else
