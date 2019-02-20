@@ -4,7 +4,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
+
+#define CMD_UP 0
+#define CMD_DOWN 1
 
 int main(int argc,char *argv[])
 {
@@ -24,6 +28,29 @@ int main(int argc,char *argv[])
 	int n = 0;
 	float base = 0.00248;
 	int count = 20;
+	printf("Adjusting the balance.....\n");
+	n = read(fd,&weight,sizeof(weight));
+	
+	if(weight*base > 0.0)
+	{
+		while(weight*base > 0.0)
+		{
+			ioctl(fd,CMD_DOWN,200);
+			n = read(fd,&weight,sizeof(weight));
+			printf("weight: %fg\n",(weight*base));
+		}
+	}
+	else
+	{
+		while(weight*base < 0.0)
+		{
+			ioctl(fd,CMD_UP,200);
+			n = read(fd,&weight,sizeof(weight));
+			printf("weight: %fg\n",(weight*base));
+		}
+	}
+
+	printf("start to balance someting....\n");
 	while(count--)
 	{
 		printf("waiting something.....\n");

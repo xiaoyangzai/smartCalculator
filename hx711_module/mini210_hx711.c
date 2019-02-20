@@ -29,6 +29,8 @@
 #include <mach/regs-gpio.h>
 
 #define DEVICE_NAME		"hx711"
+#define CMD_INCREASE	1
+#define CMD_DECREASE	0
 
 struct hx711_desc {
 	int gpio;
@@ -46,6 +48,7 @@ static DECLARE_WAIT_QUEUE_HEAD(hx711_waitq);
 static volatile int ev_press = 0;
 static volatile int weight = 0;
 static struct timer_list timer;
+static int baise =8414300; 
 
 static void read_hx711_data(struct hx711_desc *data)
 {
@@ -86,8 +89,8 @@ static void mini210_hx711_timer(unsigned long _data)
 	printk("timeout,check weight....\n");
 	//读取电子秤获取重量
 	read_hx711_data(bdata);
-	weight = (weight - 8414300) < 0 ? 0 : (weight - 8414300); 
-	printk("output weight: %d\n",weight+8414300);
+	weight = (weight - baise) < 0 ? 0 : (weight - baise); 
+	printk("output weight: %d\n",weight+baise);
 	if (weight >= 0) {
 		if(weight < 1000)
 			weight = 0;
@@ -131,11 +134,27 @@ static int mini210_hx711_read(struct file *filp, char __user *buff,
 	return err ? -EFAULT : min(sizeof(weight), count);
 }
 
+static long mini210_hx711_ioctl(struct file *filep, unsigned int cmd,
+		unsigned long arg)
+{
+	switch (cmd) {
+		case CMD_INCREASE:
+			baise += arg;
+			break;
+		case CMD_DECREASE:
+			baise -= arg;
+			break;
+	}
+	return 0;
+}
+
 static struct file_operations dev_fops = {
 	.owner		= THIS_MODULE,
 	.open		= mini210_hx711_open,
 	.release	= mini210_hx711_close, 
 	.read		= mini210_hx711_read,
+	.unlocked_ioctl	= mini210_hx711_ioctl,
+
 };
 
 static struct miscdevice misc = {
