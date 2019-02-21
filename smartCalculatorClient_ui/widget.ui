@@ -357,7 +357,7 @@ text-align:center;</string>
             </font>
            </property>
            <property name="text">
-            <string>   元</string>
+            <string>元  </string>
            </property>
           </widget>
          </item>
@@ -449,7 +449,51 @@ text-align:center;</string>
             </font>
            </property>
            <property name="text">
-            <string>   元</string>
+            <string>元        累计</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLCDNumber" name="ple_total_append">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="layoutDirection">
+            <enum>Qt::LeftToRight</enum>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color: rgb(0, 0, 0);
+color: rgb(0, 255, 0);
+text-align:center;</string>
+           </property>
+           <property name="smallDecimalPoint">
+            <bool>true</bool>
+           </property>
+           <property name="numDigits">
+            <number>6</number>
+           </property>
+           <property name="digitCount">
+            <number>6</number>
+           </property>
+           <property name="value" stdset="0">
+            <double>0.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_8">
+           <property name="font">
+            <font>
+             <pointsize>11</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>元  </string>
            </property>
           </widget>
          </item>
@@ -516,7 +560,7 @@ text-align:center;</string>
         </widget>
        </item>
        <item row="2" column="4">
-        <widget class="QPushButton" name="pbt_setbase">
+        <widget class="QPushButton" name="pbtn_setbase">
          <property name="font">
           <font>
            <pointsize>11</pointsize>
@@ -571,7 +615,7 @@ text-align:center;</string>
           </font>
          </property>
          <property name="text">
-          <string>清除</string>
+          <string>清除/重置</string>
          </property>
         </widget>
        </item>

@@ -18,6 +18,9 @@ Widget::Widget(const char *server_ip, short server_port, int balance_fd,int devi
     ui->setupUi(this);
     auto_mode = true;
     send_img = false;
+    this->tmp_base = 0.0;
+    this->sum = 0;
+    QObject::connect(ui->pbtn_setbase,SIGNAL(clicked()),this,SLOT(on_setbase_clicked()));
     this->pool = memory_pool_create(5*1024*1024);
     resize_rgb24 = (uint8_t*)memory_pool_alloc(pool,224*224*3);
 
@@ -33,6 +36,8 @@ Widget::Widget(const char *server_ip, short server_port, int balance_fd,int devi
     this->balance_fd = balance_fd;
     this->device_id = device_id;
 
+    //累计功能
+    QObject::connect(ui->pbt_append,SIGNAL(clicked()),this,SLOT(on_append_clicked()));
     //连接远程服务器，包括算法模型和数据库服务器
     int server_fd = ::socket(PF_INET,SOCK_STREAM,0);
     if(server_fd < 0)
@@ -112,7 +117,16 @@ Widget::Widget(const char *server_ip, short server_port, int balance_fd,int devi
     QObject::connect(ptbalance,SIGNAL(signal_update_weight(float)),this,SLOT(slot_balance_update_weight(float)));
     ptbalance->start();
 }
-
+void Widget::on_setbase_clicked()
+{
+    this->tmp_base = ui->ple_weight->value();
+}
+void Widget::on_append_clicked()
+{
+    append_flag = true;
+    ui->ple_total_append->display(ui->ple_total->value());
+    sum = ui->ple_total->value();
+}
 void Widget::setStatue(QString text)
 {
     ui->ple_statue->setText(text);
@@ -123,7 +137,8 @@ void Widget::setClassLcd(QString text)
 }
 void Widget::setPriceLcd(float val)
 {
-    ui->ple_price->display(val);
+    if(auto_mode)
+        ui->ple_price->display(val);
 }
 void Widget::slot_update_video()
 {
@@ -143,11 +158,18 @@ void Widget::slot_balance_update_weight(float weight)
 {
     //加载重量
     //grw->lockForWrite();
-    int val = weight ;
-    ui->ple_weight->display(val/1000.0);
+    float val = weight/1000.0 - this->tmp_base ;
+    if(val < 0)
+        val = 0;
+    ui->ple_weight->display(val);
     //grw->unlock();
     if(weight <= 0)
+    {
         send_img = false;
+        this->ui->ple_classid->setText(QObject::tr("空"));
+        if(auto_mode)
+            this->ui->ple_price->display(0);
+    }
     else
     {
         send_img = true;
@@ -175,7 +197,9 @@ void Widget::on_numb1_clicked()
         //grw->lockForWrite();
         ui->ple_statue->setText(QString(QObject::tr("手动模式已开启")));
         //grw->unlock();
+        grw->lockForWrite();
         auto_mode = false;
+        grw->unlock();
     }
 
     //grw->lockForWrite();
@@ -184,6 +208,8 @@ void Widget::on_numb1_clicked()
     float tmp = input_price.toDouble(&ok);
     if(ok)
         ui->ple_price->display(tmp);
+    else
+        input_price.clear();
     //grw->unlock();
 
     grw->lockForRead();
@@ -199,34 +225,48 @@ void Widget::on_pbn_accept_clicked()
     {
         if(server_fd > 0)
         {
+            grw->lockForWrite();
             auto_mode = true;
-            //grw->lockForWrite();
+            grw->unlock();
             ui->ple_statue->setText(QString(QObject::tr("自动模式已开启")));
             //grw->unlock();
         }
         input_price.clear();
     }
+    if(append_flag)
+        sum +=  ui->ple_total->value();
+    else
+        sum = ui->ple_total->value();
+    ui->ple_total_append->display(sum);
 }
 
 void Widget::on_pbt_clear_clicked()
 {
+    this->tmp_base = 0;
+    sum = 0;
+    ui->ple_total_append->display(sum);
+    append_flag = false;
+
     if(auto_mode == false)
     {
         ui->ple_price->display(0.0);
         ui->ple_total->display(0.0);
         input_price.clear();
     }
+    input_price.clear();
 }
 
 void Widget::on_numb2_clicked()
 {
     if(auto_mode)
     {
-        input_price.clear();
+        //input_price.clear();
         //grw->lockForWrite();
         ui->ple_statue->setText(QString(QObject::tr("手动模式已开启")));
         //grw->unlock();
+        grw->lockForWrite();
         auto_mode = false;
+        grw->unlock();
     }
 
     //grw->lockForWrite();
@@ -248,10 +288,12 @@ void Widget::on_numb3_clicked()
     if(auto_mode)
     {
         input_price.clear();
-        //grw->lockForWrite();
+
         ui->ple_statue->setText(QString(QObject::tr("手动模式已开启")));
-       // grw->unlock();
+
+        grw->lockForWrite();
         auto_mode = false;
+        grw->unlock();
     }
 
     //grw->lockForWrite();
@@ -276,7 +318,10 @@ void Widget::on_numb4_clicked()
         //grw->lockForWrite();
         ui->ple_statue->setText(QString(QObject::tr("手动模式已开启")));
         //grw->unlock();
+        grw->lockForWrite();
         auto_mode = false;
+        grw->unlock();
+
     }
 
     //grw->lockForWrite();
@@ -301,7 +346,10 @@ void Widget::on_numb5_clicked()
         //grw->lockForWrite();
         ui->ple_statue->setText(QString(QObject::tr("手动模式已开启")));
         //grw->unlock();
+        grw->lockForWrite();
         auto_mode = false;
+        grw->unlock();
+
     }
 
     //grw->lockForWrite();
@@ -326,7 +374,10 @@ void Widget::on_numb6_clicked()
         //grw->lockForWrite();
         ui->ple_statue->setText(QString(QObject::tr("手动模式已开启")));
         //grw->unlock();
+        grw->lockForWrite();
         auto_mode = false;
+        grw->unlock();
+
     }
 
     //grw->lockForWrite();
@@ -351,7 +402,9 @@ void Widget::on_numb7_clicked()
         //grw->lockForWrite();
         ui->ple_statue->setText(QString(QObject::tr("手动模式已开启")));
         //grw->unlock();
+        grw->lockForWrite();
         auto_mode = false;
+        grw->unlock();
     }
 
     //grw->lockForWrite();
@@ -376,7 +429,9 @@ void Widget::on_numb8_clicked()
         //grw->lockForWrite();
         ui->ple_statue->setText(QString(QObject::tr("手动模式已开启")));
         //grw->unlock();
+        grw->lockForWrite();
         auto_mode = false;
+        grw->unlock();
     }
 
     //grw->lockForWrite();
@@ -405,7 +460,9 @@ void Widget::on_numb9_clicked()
         //grw->lockForWrite();
         ui->ple_statue->setText(QString(QObject::tr("手动模式已开启")));
         //grw->unlock();
+        grw->lockForWrite();
         auto_mode = false;
+        grw->unlock();
     }
 
     //grw->lockForWrite();
@@ -431,7 +488,10 @@ void Widget::on_numb0_clicked()
         //grw->lockForWrite();
         ui->ple_statue->setText(QString(QObject::tr("手动模式已开启")));
         //grw->unlock();
+        grw->lockForWrite();
         auto_mode = false;
+        grw->unlock();
+
     }
 
     //grw->lockForWrite();
@@ -456,7 +516,9 @@ void Widget::on_numb_float_clicked()
         //grw->lockForWrite();
         ui->ple_statue->setText(QString(QObject::tr("手动模式已开启")));
         //grw->unlock();
+        grw->lockForWrite();
         auto_mode = false;
+        grw->unlock();
     }
     input_price.append(".");
     bool ok = false;

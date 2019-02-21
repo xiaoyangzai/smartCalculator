@@ -65,7 +65,8 @@ private slots:
     void on_numb0_clicked();
 
     void on_numb_float_clicked();
-
+    void on_setbase_clicked();
+    void on_append_clicked();
 private:
     Ui::Widget *ui;
 public:
@@ -96,6 +97,12 @@ public:
 
     //商品分类标志位
     volatile bool send_img;
+
+    //去皮
+    float tmp_base;
+    //累计
+    float sum;
+    bool append_flag;
 
 };
 
